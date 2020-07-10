@@ -17,26 +17,29 @@ VER = "2.0"
 AUTHOR = "Bruno-P. Busque"
 PH_IMAGE_PATH = os.path.realpath(__file__).strip("curvefinder.py") + "placeholder.png"
 TEMP_PATH = os.path.realpath(__file__).strip("curvefinder.py") + "temp/"
+ORIG_IMG = TEMP_PATH + "original_img.png"
+COOR_IMG = TEMP_PATH + "coordinate_img.png"
+ROTA_IMG = TEMP_PATH + "rotated_img.png"
+CONT_IMG = TEMP_PATH + "contoured_img.png"
+CTMK_IMG = TEMP_PATH + "masked_contoured_img.png"
+SELE_IMG = TEMP_PATH + "selected_img.png"
+
 TEMP_IMG = TEMP_PATH + "graph_temp.png"
 TEMP_CONT_IMG = TEMP_PATH + "graph_temp_cont.png"
 TEMP_MASK_IMG = TEMP_PATH + "mask.png"
 TEMP_CURV_IMG = TEMP_PATH + "curves.png"
 
 
-class QImageSignals(QObject):
-    position = pyqtSignal(int, int)
-
-
 class QImage(QLabel):
+    signal = pyqtSignal(int, int)
+    holdEnabled = False
+    holding = False
 
     def __init__(self, image_path: str):
         super().__init__()
         self.setStyleSheet("border: 3px solid gray;")
         self.img_path = image_path
         self.source = image_path
-        self.signals = QImageSignals()
-        self.holdEnabled = False
-        self.holding = False
 
     @property
     def source(self):
@@ -54,29 +57,113 @@ class QImage(QLabel):
     def mousePressEvent(self, ev: QMouseEvent):
         self.holding = True
         x, y = [self.original_image_size[i]*(ev.x(), ev.y())[i]/self.new_image_size[i] for i in (0, 1)]
-        self.signals.position.emit(x, y)
+        self.signal.emit(x, y)
 
     def mouseMoveEvent(self, ev: QMouseEvent):
         if self.holding and self.holdEnabled:
             x, y = [self.original_image_size[i] * (ev.x(), ev.y())[i] / self.new_image_size[i] for i in (0, 1)]
-            self.signals.position.emit(x, y)
+            self.signal.emit(x, y)
 
     def mouseReleaseEvent(self, ev: QMouseEvent):
         self.holding = False
 
 
-class QCoordBox(QHBoxLayout):
+class QCoord(QVBoxLayout):
 
-    def __init__(self, coord_label: str):
+    pts_labels = ["X1", "X2", "Y1", "Y2"]
+    pts = [(-1, -1)]*4
+
+    def __init__(self):
         super().__init__()
-        self.coord_label = coord_label
-        self.label = QLabel(text="{0} :".format(coord_label))
-        self.line = QLineEdit()
-        self.line.setPlaceholderText("Enter coord. for {0}...".format(coord_label))
-        self.check = QCheckBox(text="{0} placed".format(coord_label), enabled=False)
-        self.addWidget(self.label)
-        self.addWidget(self.line)
-        self.addWidget(self.check)
+
+        # Create the widget
+        self.x1_coord = self.QCoordBox(self.pts_labels[0])
+        self.x2_coord = self.QCoordBox(self.pts_labels[1])
+        self.y1_coord = self.QCoordBox(self.pts_labels[2])
+        self.y2_coord = self.QCoordBox(self.pts_labels[3])
+
+        # Create the layout
+        self.addLayout(self.x1_coord)
+        self.addLayout(self.x2_coord)
+        self.addLayout(self.y1_coord)
+        self.addLayout(self.y2_coord)
+
+        # Initialise the values
+        self.initValues()
+
+    def initValues(self):
+        self.x1_done = False
+        self.x2_done = False
+        self.y1_done = False
+        self.y2_done = False
+
+    @property
+    def x1_done(self):
+        return self._x1_done
+
+    @x1_done.setter
+    def x1_done(self, status):
+        self._x1_done = status
+        self.x1_coord.check.setChecked(status)
+        if not status:
+            self.pts[0] = (-1, -1)
+
+    @property
+    def x2_done(self):
+        return self._x2_done
+
+    @x2_done.setter
+    def x2_done(self, status):
+        self._x2_done = status
+        self.x2_coord.check.setChecked(status)
+        if not status:
+            self.pts[1] = (-1, -1)
+
+    @property
+    def y1_done(self):
+        return self._y1_done
+
+    @y1_done.setter
+    def y1_done(self, status):
+        self._y1_done = status
+        self.y1_coord.check.setChecked(status)
+        if not status:
+            self.pts[2] = (-1, -1)
+
+    @property
+    def y2_done(self):
+        return self._y2_done
+
+    @y2_done.setter
+    def y2_done(self, status):
+        self._y2_done = status
+        self.y2_coord.check.setChecked(status)
+        #self.but_next.setEnabled(status)
+        if not status:
+            self.pts[3] = (-1, -1)
+        #else:
+        #    self.instruct.setMarkdown("Enter the graph coordinates for each points.\n"
+        #                              "\n"
+        #                              "Press `Next` if your satisfied with your points.\n"
+        #                              "Press `Restart` if not.")
+
+    class QCoordBox(QHBoxLayout):
+
+        def __init__(self, coord_label: str):
+            super().__init__()
+
+            # Set the widgets
+            self.coord_label = coord_label
+            self.label = QLabel(text="{0} :".format(coord_label))
+            self.line = QLineEdit()
+            self.line.setPlaceholderText("Enter coord. for {0}...".format(coord_label))
+            self.check = QCheckBox(text="{0} placed".format(coord_label))
+            self.check.setEnabled(False)
+
+            # Create the layout
+            self.addWidget(self.label)
+            self.addWidget(self.line)
+            self.addWidget(self.check)
 
 
 class QInstructBox(QTextEdit):
@@ -201,7 +288,6 @@ class CurveFinder(QWidget):
 
     img_src = PH_IMAGE_PATH
     coord = np.zeros(4, dtype=float)
-    pts = [(-1, -1)]*4
     pts_colors = [(204, 0, 0), (0, 153, 0), (0, 0, 153), (204, 204, 0)]
     pts_labels = ["X1", "X2", "Y1", "Y2"]
     pts_final_p = []
@@ -233,16 +319,13 @@ class CurveFinder(QWidget):
         self.img = QImage(PH_IMAGE_PATH)
         self.instruct = QInstructBox()
         self.img_op = QImageOptions()
-        self.x1_coord = QCoordBox(self.pts_labels[0])
-        self.x2_coord = QCoordBox(self.pts_labels[1])
-        self.y1_coord = QCoordBox(self.pts_labels[2])
-        self.y2_coord = QCoordBox(self.pts_labels[3])
+        self.coord_prompt = QCoord()
         self.but_browse = QPushButton(text="Select an image")
         self.but_start = QPushButton(text="Start")
         self.but_next = QPushButton(text="Next")
 
         # Bind the signals
-        self.img.signals.position.connect(self.add_position)
+        self.img.signal.connect(self.add_position)
         self.but_browse.clicked.connect(self.browse_for_image)
         self.but_start.clicked.connect(self.start)
         self.but_next.clicked.connect(self.next)
@@ -257,10 +340,7 @@ class CurveFinder(QWidget):
         options = QVBoxLayout()
         options.addWidget(self.instruct)
         options.addLayout(self.img_op)
-        options.addLayout(self.x1_coord)
-        options.addLayout(self.x2_coord)
-        options.addLayout(self.y1_coord)
-        options.addLayout(self.y2_coord)
+        options.addLayout(self.coord_prompt)
         options.addWidget(self.but_browse)
         but_lay = QHBoxLayout()
         but_lay.addWidget(self.but_start)
@@ -277,13 +357,8 @@ class CurveFinder(QWidget):
         self.setLayout(vbox)
 
         # Set status
-        self.started = False
-        self.x1_done = False
-        self.x2_done = False
-        self.y1_done = False
-        self.y2_done = False
+        self.app_state = 0
         self.rotated = False
-        self.next_state = 0
 
         self.show()
 
@@ -294,26 +369,20 @@ class CurveFinder(QWidget):
     def browse_for_image(self):
         self.img_src = str(QFileDialog().getOpenFileName(filter="Images (*.png *.bmp *.jpg)")[0])
         if self.img_src != "":
-            self.started = False
             self.img.source = self.img_src
-            self.instruct.setMarkdown("Press `Start`")
+            self.app_state = 0  # Return to initial state
 
     def start(self):
-        cv2.imwrite(TEMP_IMG, cv2.imread(self.img_src))
-        self.img.source = TEMP_IMG
-        self.x1_done = False
-        self.x2_done = False
-        self.y1_done = False
-        self.y2_done = False
-        self.next_state = 0
-        self.started = True
         self.instruct.setMarkdown("Click on 2 points for each axis in this order:\n"
                                   "```\n - X1\n - X2\n - Y1\n - Y2\n```")
+        cv2.imwrite(ORIG_IMG, cv2.imread(self.img_src))
+        self.app_state = 1
 
     def next(self):
-        if self.next_state == 0:
+        if self.app_state == 2:
             good_coord = True
-            for (i, coord) in enumerate([self.x1_coord, self.x2_coord, self.y1_coord, self.y2_coord]):
+            for (i, coord) in enumerate([self.coord_prompt.x1_coord, self.coord_prompt.x2_coord,
+                                         self.coord_prompt.y1_coord, self.coord_prompt.y2_coord]):
                 try:
                     self.coord[i] = float(coord.line.text())
                 except ValueError:
@@ -327,111 +396,86 @@ class CurveFinder(QWidget):
                     break
 
             if good_coord:
-                self.resize_and_rotate()
-                self.update_image()
-                self.instruct.setMarkdown("Adjust the thresholding so that the curve you want to extract"
-                                          " is clearly visible.\n\n"
-                                          "When done, press `Next`")
+                self.app_state = 3
 
-        elif self.next_state == 1:
-            self.img_op.setEnabled(False)
-            self.instruct.setMarkdown("Press and hold over the curve you want to extract. "
-                                      "When you selected all the curve, press `Next` to extract "
-                                      "the data points.")
-            self.img.holdEnabled = True
-            img = cv2.cvtColor(cv2.imread(TEMP_CONT_IMG), cv2.COLOR_BGR2GRAY)
-            img = np.greater(img, np.zeros(img.shape))*255
-            self.mask = np.ones(img.shape)
-            cv2.imwrite(TEMP_CURV_IMG, img)
-            self.next_state = 2
+        elif self.app_state == 3:
+            self.app_state = 4
 
-        elif self.next_state == 2:
-            img = cv2.cvtColor(cv2.imread(TEMP_CURV_IMG), cv2.COLOR_BGR2GRAY)
-            img = np.equal(img, self.mask)
-            pts_y, pts_x = np.where(img)
-            img = cv2.imread(TEMP_IMG)
-            for (x, y) in zip(pts_x, pts_y):
-                a, b = self.transform_p_to_r((x, y))
-                self.pts_final_p.append((x, y))
-                self.pts_final_r.append(np.array([a, b]))
-                cv2.circle(img, (x, y), 2, (0, 0, 255), -1)
-#
-            cv2.imwrite(TEMP_MASK_IMG, img)
-            self.img.source = TEMP_MASK_IMG
-            self.img_op.is_brush = False
-            self.set_formula()
+        elif self.app_state == 4:
+            self.app_state = 5
 
     def add_position(self, x: int, y: int):
-        if self.started:
-            if not self.x1_done:
+        if self.app_state == 1:
+            if not self.coord_prompt.x1_done:
                 self.draw_points(x1=(x, y))
-                self.x1_done = True
-            elif not self.x2_done:
+                self.coord_prompt.x1_done = True
+            elif not self.coord_prompt.x2_done:
                 self.draw_points(x2=(x, y))
-                self.x2_done = True
-            elif not self.y1_done:
+                self.coord_prompt.x2_done = True
+            elif not self.coord_prompt.y1_done:
                 self.draw_points(y1=(x, y))
-                self.y1_done = True
-            elif not self.y2_done:
+                self.coord_prompt.y1_done = True
+            elif not self.coord_prompt.y2_done:
                 self.draw_points(y2=(x, y))
-                self.y2_done = True
+                self.coord_prompt.y2_done = True
+                self.app_state = 2
 
-            elif self.next_state == 2:
-                self.mark_curve(x, y)
+        elif self.app_state == 4:
+            self.draw_mask(x, y)
 
     def draw_points(self, x1: tuple = None, x2: tuple = None, y1: tuple = None, y2: tuple = None):
         if x1 is not None:
-            self.pts[0] = x1
+            self.coord_prompt.pts[0] = x1
         if x2 is not None:
-            self.pts[1] = x2
+            self.coord_prompt.pts[1] = x2
         if y1 is not None:
-            self.pts[2] = y1
+            self.coord_prompt.pts[2] = y1
         if y2 is not None:
-            self.pts[3] = y2
+            self.coord_prompt.pts[3] = y2
 
-        img = cv2.imread(TEMP_IMG)
+        img = cv2.imread(ORIG_IMG)
 
-        for (i, pt) in enumerate(self.pts):
+        for (i, pt) in enumerate(self.coord_prompt.pts):
             if sum(pt) != -2:
                 cv2.circle(img, pt, 5, self.pts_colors[i], -1)
                 cv2.putText(img, self.pts_labels[i], pt, cv2.FONT_HERSHEY_SIMPLEX, 1, self.pts_colors[i], 2)
 
-        cv2.imwrite(TEMP_IMG, img)
-        self.img.source = TEMP_IMG
+        cv2.imwrite(COOR_IMG, img)
+        self.img.source = COOR_IMG
 
-    def mark_curve(self, x: int, y: int):
-        alpha = 0.5
+    def draw_mask(self, x: int, y: int):
+        alpha = 0.3
         radius = self.img_op.slider3.value()
-        img = cv2.imread(TEMP_CONT_IMG)
+        img = cv2.imread(CONT_IMG)
         new_img = img.copy()
         cv2.circle(new_img, (x, y), radius, (0, 0, 255), -1)
         cv2.addWeighted(new_img, alpha, img, 1 - alpha, 0, img)
         cv2.circle(self.mask, (x, y), radius, 255, -1)
-        cv2.imwrite(TEMP_CONT_IMG, img)
-        self.img.source = TEMP_CONT_IMG
+        cv2.imwrite(CONT_IMG, img)
+        self.img.source = CONT_IMG
 
     def resize_and_rotate(self):
         if self.xlin:
-            X1 = self.curve1["X1"] = self.pts[0][0]
-            X2 = self.curve1["X2"] = self.pts[1][0]
-            XL = self.curve2["XL"] = self.pts[2][0]
-            dX = self.curve2["dX"] = self.pts[3][0] - XL
+            X1 = self.curve1["X1"] = self.coord_prompt.pts[0][0]
+            X2 = self.curve1["X2"] = self.coord_prompt.pts[1][0]
+            XL = self.curve2["XL"] = self.coord_prompt.pts[2][0]
+            dX = self.curve2["dX"] = self.coord_prompt.pts[3][0] - XL
         else:
-            X1 = self.curve1["X1"] = mt.log10(self.pts[0][0])
-            X2 = self.curve1["X2"] = mt.log10(self.pts[1][0])
-            XL = self.curve2["XL"] = mt.log10(self.pts[2][0])
-            dX = self.curve2["dX"] = mt.log10(self.pts[3][0]) - XL
+            X1 = self.curve1["X1"] = mt.log10(self.coord_prompt.pts[0][0])
+            X2 = self.curve1["X2"] = mt.log10(self.coord_prompt.pts[1][0])
+            XL = self.curve2["XL"] = mt.log10(self.coord_prompt.pts[2][0])
+            dX = self.curve2["dX"] = mt.log10(self.coord_prompt.pts[3][0]) - XL
 
         if self.ylin:
-            Y1 = self.curve2["Y1"] = self.pts[2][1]
-            Y2 = self.curve2["Y2"] = self.pts[3][1]
-            YL = self.curve1["YL"] = self.pts[0][1]
-            dY = self.curve1["dY"] = self.pts[1][1] - YL
+            Y1 = self.curve2["Y1"] = self.coord_prompt.pts[2][1]
+            Y2 = self.curve2["Y2"] = self.coord_prompt.pts[3][1]
+            YL = self.curve1["YL"] = self.coord_prompt.pts[0][1]
+            dY = self.curve1["dY"] = self.coord_prompt.pts[1][1] - YL
         else:
-            Y1 = self.curve2["Y1"] = mt.log10(self.pts[2][1])
-            Y2 = self.curve2["Y2"] = mt.log10(self.pts[3][1])
-            YL = self.curve1["YL"] = mt.log10(self.pts[0][1])
-            dY = self.curve1["dY"] = mt.log10(self.pts[1][1]) - YL
+            Y1 = self.curve2["Y1"] = mt.log10(self.coord_prompt.pts[2][1])
+            Y2 = self.curve2["Y2"] = mt.log10(self.coord_prompt.pts[3][1])
+            YL = self.curve1["YL"] = mt.log10(self.coord_prompt.pts[0][1])
+            dY = self.curve1["dY"] = mt.log10(self.coord_prompt.pts[1][1]) - YL
 
         A1 = self.curve1["A1"] = dY / (X2 - X1)
         A2 = self.curve2["A2"] = (Y2 - Y1) / dX
@@ -454,19 +498,12 @@ class CurveFinder(QWidget):
         img = cv2.imread(self.img_src)
         img = cv2.warpAffine(img, M, img.shape[1::-1], flags=cv2.INTER_LINEAR)
 
-        # for pt in pts_prime:
-        #     cv2.circle(img, pt, 5, (0, 0, 255), -1)
-
-        cv2.imwrite(TEMP_IMG, img)
-        self.img.source = TEMP_IMG
-
-        self.rotated = True
+        cv2.imwrite(ROTA_IMG, img)
+        self.img.source = ROTA_IMG
 
     def update_image(self):
-        if self.rotated:
-            img = cv2.imread(TEMP_IMG)
-            new_img = np.zeros(img.shape)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        if self.app_state == 3:
+            img = cv2.cvtColor(cv2.imread(ROTA_IMG), cv2.COLOR_BGR2GRAY)
             tr1, tr2 = [self.img_op.slider1.value(), self.img_op.slider2.value()]
 
             mode = self.img_op.combo.currentText()
@@ -491,29 +528,30 @@ class CurveFinder(QWidget):
                 pass
 
             cont, h = cv2.findContours(img, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+            a, b = img.shape
+            img = np.zeros((a, b, 3))
 
             for c in cont:
                 col = (rand.randrange(255), rand.randrange(255), rand.randrange(255))
-                cv2.drawContours(new_img, c, -1, col)
+                cv2.drawContours(img, c, -1, col)
 
-            cv2.imwrite(TEMP_CONT_IMG, new_img)
-            self.img.source = TEMP_CONT_IMG
-            self.next_state = 1
+            cv2.imwrite(CONT_IMG, img)
+            self.img.source = CONT_IMG
 
-    def transform_p_to_r(self, pt):
+    def pixel_to_graph(self, pt):
         x, y = pt
-        xr = self.Xpr * (x - self.curve1["X1"]) + self.coord[0]
-        yr = self.Ypr * (y - self.curve2["Y1"]) + self.coord[2]
-        return np.array([xr, yr])
+        a = self.Xpr * (x - self.curve1["X1"]) + self.coord[0]
+        b = self.Ypr * (y - self.curve2["Y1"]) + self.coord[2]
+        return np.array([a, b])
 
-    def transform_r_to_p(self, ptr):
-        xr, yr = ptr
-        x = (xr - self.coord[0])/self.Xpr + self.curve1["X1"]
-        y = (yr - self.coord[2])/self.Ypr + self.curve2["Y1"]
+    def graph_to_pixel(self, pt):
+        a, b = pt
+        x = (a - self.coord[0])/self.Xpr + self.curve1["X1"]
+        y = (b - self.coord[2])/self.Ypr + self.curve2["Y1"]
         return np.array([x, y])
 
     def set_formula(self, do: bool = True):
-        if do and self.next_state == 2 and not self.img_op.is_brush:
+        if do and self.app_state == 5:
             x, y = [np.array(self.pts_final_r)[:, 0], np.array(self.pts_final_r)[:, 1]]
             if self.img_op.y_from_x.isChecked():
                 var = "x"
@@ -539,7 +577,7 @@ class CurveFinder(QWidget):
 
             eval_pts = []
             for (x, y) in zip(ex, ey):
-                a, b = self.transform_r_to_p((x, y))
+                a, b = self.graph_to_pixel((x, y))
                 eval_pts.append(np.array([a, b]))
 
             self.pts_eval_p = eval_pts
@@ -547,7 +585,7 @@ class CurveFinder(QWidget):
             formula = ""
             for (i, c) in enumerate(coef):
                 if order - i > 1:
-                    formula += "{0:+.2e} {1}^{2} ".format(c, var, order - i)
+                    formula += "{0:+.2e} {1}<sup>{2}</sup> ".format(c, var, order - i)
                 elif order - i == 1:
                     formula += "{0:+.2e} {1} ".format(c, var)
                 else:
@@ -557,70 +595,69 @@ class CurveFinder(QWidget):
             self.instruct.setMarkdown(text)
 
     @property
-    def started(self):
-        return self._started
+    def app_state(self):
+        return self._app_state
 
-    @started.setter
-    def started(self, status):
-        self._started = status
-        if status:
-            self.but_start.setText("Restart")
-        else:
+    @app_state.setter
+    def app_state(self, state):
+        if state == 0:
+            """Starting state"""
+            self._app_state = 0
+            self.instruct.setMarkdown("Choose a picture of a graph and press `Start`")
             self.but_start.setText("Start")
-            self.rotated = False
-            self.next_state = 0
+            self.coord_prompt.initValues()
             self.img_op.setEnabled(True)
             self.img_op.is_brush = True
+        elif state == 1:
+            """Pressed Start"""
+            self._app_state = 1
+            self.but_start.setText("Restart")
+            self.coord_prompt.initValues()
+            self.img_op.setEnabled(True)
+            self.img_op.is_brush = True
+            self.img.source = ORIG_IMG
+        elif state == 2:
+            """Coordinate all selected"""
+            self._app_state = 2
+        elif state == 3:
+            """Chose the coord and rotated"""
+            self._app_state = 3
+            self.resize_and_rotate()
+            self.update_image()
+            self.instruct.setMarkdown("Adjust the thresholding so that the curve you want to extract"
+                                      " is clearly visible.\n\n"
+                                      "When done, press `Next`")
+        elif state == 4:
+            """Chose the displaying"""
+            self._app_state = 4
+            self.img_op.setEnabled(False)
+            self.img.holdEnabled = True
+            img = cv2.cvtColor(cv2.imread(CONT_IMG), cv2.COLOR_BGR2GRAY)
+            img = np.greater(img, np.zeros(img.shape))*255  # Create the contour mask
+            self.mask = np.ones(img.shape)
+            cv2.imwrite(CTMK_IMG, img)
+            self.instruct.setMarkdown("Press and hold over the curve you want to extract. "
+                                      "When you selected all the curve, press `Next` to extract "
+                                      "the data points.")
+        elif state == 5:
+            """Selected the edges to keep"""
+            self._app_state = 5
+            img = cv2.cvtColor(cv2.imread(CTMK_IMG), cv2.COLOR_BGR2GRAY)
+            img = np.equal(img, self.mask)
+            pts_y, pts_x = np.where(img)
 
-    @property
-    def x1_done(self):
-        return self._x1_done
+            img = cv2.imread(ROTA_IMG)
+            for (x, y) in zip(pts_x, pts_y):
+                a, b = self.pixel_to_graph((x, y))
+                self.pts_final_p.append((x, y))
+                self.pts_final_r.append(np.array([a, b]))
+                cv2.circle(img, (x, y), 2, (0, 0, 255), -1)
 
-    @x1_done.setter
-    def x1_done(self, status):
-        self._x1_done = status
-        self.x1_coord.check.setChecked(status)
-        if not status:
-            self.pts[0] = (-1, -1)
-
-    @property
-    def x2_done(self):
-        return self._x2_done
-
-    @x2_done.setter
-    def x2_done(self, status):
-        self._x2_done = status
-        self.x2_coord.check.setChecked(status)
-        if not status:
-            self.pts[1] = (-1, -1)
-
-    @property
-    def y1_done(self):
-        return self._y1_done
-
-    @y1_done.setter
-    def y1_done(self, status):
-        self._y1_done = status
-        self.y1_coord.check.setChecked(status)
-        if not status:
-            self.pts[2] = (-1, -1)
-
-    @property
-    def y2_done(self):
-        return self._y2_done
-
-    @y2_done.setter
-    def y2_done(self, status):
-        self._y2_done = status
-        self.y2_coord.check.setChecked(status)
-        self.but_next.setEnabled(status)
-        if not status:
-            self.pts[3] = (-1, -1)
-        else:
-            self.instruct.setMarkdown("Enter the graph coordinates for each points.\n"
-                                      "\n"
-                                      "Press `Next` if your satisfied with your points.\n"
-                                      "Press `Restart` if not.")
+            cv2.imwrite(SELE_IMG, img)
+            self.img.source = SELE_IMG
+            self.img_op.is_brush = False
+            self.set_formula()
+            self.but_next.setText("Plot")
 
 
 if __name__ == "__main__":

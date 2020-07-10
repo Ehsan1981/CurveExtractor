@@ -1,4 +1,4 @@
 - afficher l'équation vs les points (les points sont généré, reste à les afficher)
-- Faire le ménage
+- Remove temp path wirting/reading
 - Logarithmic axis
 - Manual data choice
