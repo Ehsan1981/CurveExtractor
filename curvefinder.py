@@ -1,8 +1,11 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QFileDialog,\
-    QCheckBox, QLineEdit, QMessageBox, QTextEdit, QSlider, QComboBox, QRadioButton
-from PyQt5.QtGui import QPixmap, QMouseEvent, QFont
-from PyQt5.QtCore import Qt, QObject, pyqtSignal
+    QCheckBox, QLineEdit, QMessageBox, QTextEdit, QSlider, QComboBox, QRadioButton, QSpinBox
+from PyQt5.QtGui import QPixmap, QMouseEvent, QFont, QIcon
+from PyQt5.QtCore import Qt, pyqtSignal
+
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
 
 import random as rand
 import numpy as np
@@ -15,19 +18,20 @@ import os
 
 VER = "2.0"
 AUTHOR = "Bruno-P. Busque"
-PH_IMAGE_PATH = os.path.realpath(__file__).strip("curvefinder.py") + "placeholder.png"
-TEMP_PATH = os.path.realpath(__file__).strip("curvefinder.py") + "temp/"
+
+MAX_IMG_W = 1100
+MAX_IMG_H = 625
+
+ICON_PATH = "icon.png"
+PH_IMAGE_PATH = "placeholder.png"
+TEMP_PATH = "temp/"
 ORIG_IMG = TEMP_PATH + "original_img.png"
 COOR_IMG = TEMP_PATH + "coordinate_img.png"
 ROTA_IMG = TEMP_PATH + "rotated_img.png"
 CONT_IMG = TEMP_PATH + "contoured_img.png"
 CTMK_IMG = TEMP_PATH + "masked_contoured_img.png"
 SELE_IMG = TEMP_PATH + "selected_img.png"
-
-TEMP_IMG = TEMP_PATH + "graph_temp.png"
-TEMP_CONT_IMG = TEMP_PATH + "graph_temp_cont.png"
-TEMP_MASK_IMG = TEMP_PATH + "mask.png"
-TEMP_CURV_IMG = TEMP_PATH + "curves.png"
+PLOT_IMG = TEMP_PATH + "plotted_img.png"
 
 
 class QImage(QLabel):
@@ -50,7 +54,7 @@ class QImage(QLabel):
         self.img_path = src
         new_img = QPixmap(src)
         self.original_image_size = (new_img.height(), new_img.width())
-        self._source = new_img.scaled(1100, 625, Qt.KeepAspectRatio)
+        self._source = new_img.scaled(MAX_IMG_W, MAX_IMG_H, Qt.KeepAspectRatio)
         self.new_image_size = (self._source.height(), self._source.width())
         self.setPixmap(self._source)
 
@@ -166,13 +170,35 @@ class QCoord(QVBoxLayout):
             self.addWidget(self.check)
 
 
-class QInstructBox(QTextEdit):
+class QInstructBox(QVBoxLayout):
+
+    options = ["Copy formula (Markdown)", "Copy retrieved points", "Copy Coef. for Numpy"]
 
     def __init__(self):
         super().__init__()
-        self.setMarkdown("Select a graph to start.")
-        self.setEnabled(False)
-        self.setFont(QFont("Calibri", 12, QFont.Bold))
+
+        self.combo = QComboBox()
+        self.combo.addItems(self.options)
+        self.but_copy = QPushButton(text="Copy")
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.combo, stretch=1)
+        hbox.addWidget(self.but_copy)
+
+        self.textbox = QTextEdit()
+        self.textbox.setMarkdown("Select a graph to start.")
+        self.textbox.setEnabled(False)
+        self.textbox.setFont(QFont("Calibri", 12, QFont.Bold))
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.textbox)
+        vbox.addLayout(hbox)
+
+        self.addLayout(vbox)
+
+    def setEnabled(self, a0: bool):
+        self.combo.setEnabled(a0)
+        self.but_copy.setEnabled(a0)
 
 
 class QImageOptions(QVBoxLayout):
@@ -188,11 +214,14 @@ class QImageOptions(QVBoxLayout):
         super().__init__()
 
         # Set the radios
+        self.label0 = QLabel(text="Wanted formula :")
         self.y_from_x = QRadioButton(text="y = f(x)")
         self.y_from_x.setChecked(True)
         self.x_from_y = QRadioButton(text="x = f(y)")
 
         hb0 = QHBoxLayout()
+        hb0.addWidget(self.label0)
+        hb0.addStretch(1)
         hb0.addWidget(self.y_from_x)
         hb0.addWidget(self.x_from_y)
 
@@ -225,17 +254,16 @@ class QImageOptions(QVBoxLayout):
         hb2.addWidget(self.label2)
         hb2.addWidget(self.slider2)
 
-        # Set the second labeled slider
+        # Set the brush/order spinbox
         self.label3 = QLabel()
-        self.slider3 = QSlider(Qt.Horizontal)
-        self.slider3.setTickPosition(QSlider.TicksBelow)
-        self.slider3.setMinimum(0)
+        self.spinbox = QSpinBox()
+        self.spinbox.setMinimum(0)
         self.is_brush = True
-        self.slider3.sliderMoved.connect(self.update_brush_label)
+        self.spinbox.valueChanged.connect(self.update_brush_label)
 
         hb3 = QHBoxLayout()
         hb3.addWidget(self.label3)
-        hb3.addWidget(self.slider3)
+        hb3.addWidget(self.spinbox)
 
         # Set the final layout
         self.addLayout(hb0)
@@ -263,7 +291,7 @@ class QImageOptions(QVBoxLayout):
 
     def update_brush_label(self):
         if not self.is_brush:
-            self.label3.setText("Fit order (cur. : {0})".format(self.slider3.value()))
+            self.label3.setText("Fit order :".format(self.spinbox.value()))
 
     @property
     def is_brush(self):
@@ -273,15 +301,15 @@ class QImageOptions(QVBoxLayout):
     def is_brush(self, status: bool):
         self._is_brush = status
         if status:
-            self.label3.setText("Brush size")
-            self.slider3.setMaximum(50)
-            self.slider3.setTickInterval(5)
-            self.slider3.setValue(5)
+            self.label3.setText("Brush size :")
+            self.spinbox.setMaximum(50)
+            self.spinbox.setSingleStep(5)
+            self.spinbox.setValue(5)
         else:
-            self.label3.setText("Fit order (cur. : 5)")
-            self.slider3.setMaximum(10)
-            self.slider3.setTickInterval(1)
-            self.slider3.setValue(5)
+            self.label3.setText("Fit order :")
+            self.spinbox.setMaximum(10)
+            self.spinbox.setSingleStep(1)
+            self.spinbox.setValue(5)
 
 
 class CurveFinder(QWidget):
@@ -292,20 +320,22 @@ class CurveFinder(QWidget):
     pts_labels = ["X1", "X2", "Y1", "Y2"]
     pts_final_p = []
     pts_final_r = []
-    pts_eval_p = []
-    origin = (0, 0)
-    angle = 0
+    pts_eval_r = []
     curve1 = {}
     curve2 = {}
-    xlin = True  # Implement log
-    ylin = True  # Implement log
     Xpr = 0
     Ypr = 0
+    coef = []
+    order = 5
+    var = "x"
+    xlin = True  # Implement log
+    ylin = True  # Implement log
     mask = None
 
     def __init__(self):
         QWidget.__init__(self)
         self.setWindowTitle("Curve Finder Ver. {0}".format(VER))
+        self.setWindowIcon(QIcon(ICON_PATH))
         self.setFixedWidth(1500)
         self.setFixedHeight(750)
 
@@ -329,16 +359,17 @@ class CurveFinder(QWidget):
         self.but_browse.clicked.connect(self.browse_for_image)
         self.but_start.clicked.connect(self.start)
         self.but_next.clicked.connect(self.next)
+        self.instruct.but_copy.clicked.connect(self.copy_text)
         self.img_op.combo.currentTextChanged.connect(self.update_image)
         self.img_op.slider1.sliderMoved.connect(self.update_image)
         self.img_op.slider2.sliderMoved.connect(self.update_image)
-        self.img_op.slider3.sliderMoved.connect(self.set_formula)
+        self.img_op.spinbox.valueChanged.connect(self.set_formula)
         self.img_op.y_from_x.toggled.connect(self.set_formula)
         self.img_op.x_from_y.toggled.connect(self.set_formula)
 
         # Create the layout
         options = QVBoxLayout()
-        options.addWidget(self.instruct)
+        options.addLayout(self.instruct)
         options.addLayout(self.img_op)
         options.addLayout(self.coord_prompt)
         options.addWidget(self.but_browse)
@@ -356,9 +387,8 @@ class CurveFinder(QWidget):
         vbox.addLayout(hbox)
         self.setLayout(vbox)
 
-        # Set status
+        # Set application state
         self.app_state = 0
-        self.rotated = False
 
         self.show()
 
@@ -373,36 +403,41 @@ class CurveFinder(QWidget):
             self.app_state = 0  # Return to initial state
 
     def start(self):
-        self.instruct.setMarkdown("Click on 2 points for each axis in this order:\n"
+        self.instruct.textbox.setMarkdown("Click on 2 points for each axis in this order:\n"
                                   "```\n - X1\n - X2\n - Y1\n - Y2\n```")
         cv2.imwrite(ORIG_IMG, cv2.imread(self.img_src))
         self.app_state = 1
 
     def next(self):
-        if self.app_state == 2:
-            good_coord = True
-            for (i, coord) in enumerate([self.coord_prompt.x1_coord, self.coord_prompt.x2_coord,
-                                         self.coord_prompt.y1_coord, self.coord_prompt.y2_coord]):
-                try:
-                    self.coord[i] = float(coord.line.text())
-                except ValueError:
-                    msgBox = QMessageBox()
-                    msgBox.setIcon(QMessageBox.Warning)
-                    msgBox.setText("Coordinates of {0} must be an number!".format(coord.coord_label))
-                    msgBox.setWindowTitle("Warning")
-                    msgBox.setStandardButtons(QMessageBox.Ok)
-                    msgBox.exec()
-                    good_coord = False
-                    break
-
-            if good_coord:
-                self.app_state = 3
+        if self.app_state == 2 and self.verify_coord():
+            self.app_state = 3
 
         elif self.app_state == 3:
             self.app_state = 4
 
         elif self.app_state == 4:
             self.app_state = 5
+
+        elif self.app_state == 5:
+            self.app_state = 6
+
+    def verify_coord(self):
+        good_coord = True
+        for (i, coord) in enumerate([self.coord_prompt.x1_coord, self.coord_prompt.x2_coord,
+                                     self.coord_prompt.y1_coord, self.coord_prompt.y2_coord]):
+            try:
+                self.coord[i] = float(coord.line.text())
+            except ValueError:
+                msgBox = QMessageBox()
+                msgBox.setIcon(QMessageBox.Warning)
+                msgBox.setText("Coordinates of {0} must be an number!".format(coord.coord_label))
+                msgBox.setWindowTitle("Warning")
+                msgBox.setStandardButtons(QMessageBox.Ok)
+                msgBox.exec()
+                good_coord = False
+                break
+
+        return good_coord
 
     def add_position(self, x: int, y: int):
         if self.app_state == 1:
@@ -445,7 +480,7 @@ class CurveFinder(QWidget):
 
     def draw_mask(self, x: int, y: int):
         alpha = 0.3
-        radius = self.img_op.slider3.value()
+        radius = self.img_op.spinbox.value()
         img = cv2.imread(CONT_IMG)
         new_img = img.copy()
         cv2.circle(new_img, (x, y), radius, (0, 0, 255), -1)
@@ -482,8 +517,8 @@ class CurveFinder(QWidget):
 
         X0 = int((A1 * X1 - A2 * XL + Y1 - YL) / (A1 - A2))
         Y0 = int(A1 * (X0 - X1) + YL)
-        self.origin = (X0, Y0)
-        self.angle = theta = (mt.atan(dY / (X2 - X1)) + mt.atan(-dX / (Y2 - Y1))) / 2
+        origin = (X0, Y0)
+        angle = theta = (mt.atan(dY / (X2 - X1)) + mt.atan(-dX / (Y2 - Y1))) / 2
 
         pts_prime = np.zeros(4, dtype=tuple)
         pts_prime[0] = (int(X0 + (X1 - X0) / mt.cos(theta)), Y0)
@@ -494,7 +529,7 @@ class CurveFinder(QWidget):
         self.Xpr = (self.coord[1] - self.coord[0]) / (X2 - X1)
         self.Ypr = (self.coord[3] - self.coord[2]) / (Y2 - Y1)
 
-        M = cv2.getRotationMatrix2D(self.origin, 180 * self.angle / mt.pi, 1)
+        M = cv2.getRotationMatrix2D(origin, 180 * angle / mt.pi, 1)
         img = cv2.imread(self.img_src)
         img = cv2.warpAffine(img, M, img.shape[1::-1], flags=cv2.INTER_LINEAR)
 
@@ -551,7 +586,7 @@ class CurveFinder(QWidget):
         return np.array([x, y])
 
     def set_formula(self, do: bool = True):
-        if do and self.app_state == 5:
+        if do and self.app_state >= 5:
             x, y = [np.array(self.pts_final_r)[:, 0], np.array(self.pts_final_r)[:, 1]]
             if self.img_op.y_from_x.isChecked():
                 var = "x"
@@ -562,8 +597,9 @@ class CurveFinder(QWidget):
                 a = y
                 b = x
 
-            order = self.img_op.slider3.value()
-            coef = np.polyfit(a, b, order)
+            self.var = var
+            self.order = order = self.img_op.spinbox.value()
+            self.coef = coef = np.polyfit(a, b, order)
             b = np.poly1d(coef)
             eval_a = np.linspace(min(a), max(a), 100)
             eval_b = b(eval_a)
@@ -572,15 +608,14 @@ class CurveFinder(QWidget):
                 ex = eval_a
                 ey = eval_b
             else:
-                ey = eval_a
                 ex = eval_b
+                ey = eval_a
 
             eval_pts = []
             for (x, y) in zip(ex, ey):
-                a, b = self.graph_to_pixel((x, y))
-                eval_pts.append(np.array([a, b]))
+                eval_pts.append(np.array([x, y]))
 
-            self.pts_eval_p = eval_pts
+            self.pts_eval_r = eval_pts
 
             formula = ""
             for (i, c) in enumerate(coef):
@@ -591,8 +626,57 @@ class CurveFinder(QWidget):
                 else:
                     formula += "{0:+.2e}".format(c)
 
-            text = "The formula for this curve is :\n\n{0}\n\nCoefs: {1}".format(formula, str(coef))
-            self.instruct.setMarkdown(text)
+            text = "The formula for this curve is :\n\n{0}".format(formula)
+            self.instruct.textbox.setMarkdown(text)
+
+            if self.app_state == 6:
+                self.plot_points()
+
+    def plot_points(self):
+        fig = Figure(figsize=(11.0, 6.25), dpi=100)
+        canvas = FigureCanvas(fig)
+        ax = fig.gca()
+
+        x_true, y_true = [np.array(self.pts_final_r)[:, 0], np.array(self.pts_final_r)[:, 1]]
+        x_eval, y_eval = [np.array(self.pts_eval_r)[:, 0], np.array(self.pts_eval_r)[:, 1]]
+        ax.plot(x_true, y_true, 'or')
+        ax.plot(x_eval, y_eval, '-b')
+        ax.legend(["True", "Evaluated"])
+        ax.grid()
+
+        canvas.draw()  # draw the canvas, cache the renderer
+
+        img = np.frombuffer(canvas.tostring_rgb(), dtype='uint8').reshape(MAX_IMG_H, MAX_IMG_W, 3)
+        cv2.imwrite(PLOT_IMG, img)
+        self.img.source = PLOT_IMG
+
+    def copy_text(self):
+        mode = self.instruct.combo.currentText()
+
+        if mode == "Copy formula (Markdown)":
+            formula = ""
+            for (i, c) in enumerate(self.coef):
+                if self.order - i > 1:
+                    formula += "{0:+.2e} {1}<sup>{2}</sup> ".format(c, self.var, self.order - i)
+                elif self.order - i == 1:
+                    formula += "{0:+.2e} {1} ".format(c, self.var)
+                else:
+                    formula += "{0:+.2e}".format(c)
+            text = formula
+        elif mode == "Copy retrieved points":
+            text = str(self.pts_final_r)
+        elif mode == "Copy Coef. for Numpy":
+            text = "["
+            for (i, coef) in enumerate(self.coef):
+                if i == 0:
+                    text += "{0}".format(coef)
+                else:
+                    text += ", {0}".format(coef)
+            text += "]"
+        else:
+            return
+
+        QApplication.clipboard().setText(text)
 
     @property
     def app_state(self):
@@ -600,48 +684,46 @@ class CurveFinder(QWidget):
 
     @app_state.setter
     def app_state(self, state):
+        self._app_state = state
+
         if state == 0:
             """Starting state"""
-            self._app_state = 0
-            self.instruct.setMarkdown("Choose a picture of a graph and press `Start`")
+            self.instruct.textbox.setMarkdown("Choose a picture of a graph and press `Start`")
             self.but_start.setText("Start")
             self.coord_prompt.initValues()
+            self.instruct.setEnabled(False)
             self.img_op.setEnabled(True)
             self.img_op.is_brush = True
         elif state == 1:
             """Pressed Start"""
-            self._app_state = 1
             self.but_start.setText("Restart")
             self.coord_prompt.initValues()
+            self.instruct.setEnabled(False)
             self.img_op.setEnabled(True)
             self.img_op.is_brush = True
             self.img.source = ORIG_IMG
         elif state == 2:
             """Coordinate all selected"""
-            self._app_state = 2
         elif state == 3:
             """Chose the coord and rotated"""
-            self._app_state = 3
             self.resize_and_rotate()
             self.update_image()
-            self.instruct.setMarkdown("Adjust the thresholding so that the curve you want to extract"
+            self.instruct.textbox.setMarkdown("Adjust the thresholding so that the curve you want to extract"
                                       " is clearly visible.\n\n"
                                       "When done, press `Next`")
         elif state == 4:
             """Chose the displaying"""
-            self._app_state = 4
             self.img_op.setEnabled(False)
             self.img.holdEnabled = True
             img = cv2.cvtColor(cv2.imread(CONT_IMG), cv2.COLOR_BGR2GRAY)
             img = np.greater(img, np.zeros(img.shape))*255  # Create the contour mask
             self.mask = np.ones(img.shape)
             cv2.imwrite(CTMK_IMG, img)
-            self.instruct.setMarkdown("Press and hold over the curve you want to extract. "
+            self.instruct.textbox.setMarkdown("Press and hold over the curve you want to extract. "
                                       "When you selected all the curve, press `Next` to extract "
                                       "the data points.")
         elif state == 5:
             """Selected the edges to keep"""
-            self._app_state = 5
             img = cv2.cvtColor(cv2.imread(CTMK_IMG), cv2.COLOR_BGR2GRAY)
             img = np.equal(img, self.mask)
             pts_y, pts_x = np.where(img)
@@ -655,9 +737,13 @@ class CurveFinder(QWidget):
 
             cv2.imwrite(SELE_IMG, img)
             self.img.source = SELE_IMG
+            self.instruct.setEnabled(True)
             self.img_op.is_brush = False
             self.set_formula()
             self.but_next.setText("Plot")
+        elif state == 6:
+            """Ready to plot"""
+            self.plot_points()
 
 
 if __name__ == "__main__":
