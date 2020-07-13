@@ -307,7 +307,7 @@ class QImageOptions(QVBoxLayout):
             self.spinbox.setValue(5)
         else:
             self.label3.setText("Fit order :")
-            self.spinbox.setMaximum(10)
+            self.spinbox.setMaximum(15)
             self.spinbox.setSingleStep(1)
             self.spinbox.setValue(5)
 

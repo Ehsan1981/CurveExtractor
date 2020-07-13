@@ -1,4 +1,2 @@
-- Copy the rigth things
 - Remove temp path wirting/reading?
 - Logarithmic axis
-- Manual data choice
