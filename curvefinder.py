@@ -404,7 +404,7 @@ class CurveFinder(QWidget):
 
     def start(self):
         self.instruct.textbox.setMarkdown("Click on 2 points for each axis in this order:\n"
-                                  "```\n - X1\n - X2\n - Y1\n - Y2\n```")
+                                          "```\n - X1\n - X2\n - Y1\n - Y2\n```")
         cv2.imwrite(ORIG_IMG, cv2.imread(self.img_src))
         self.app_state = 1
 
@@ -690,6 +690,7 @@ class CurveFinder(QWidget):
             """Starting state"""
             self.instruct.textbox.setMarkdown("Choose a picture of a graph and press `Start`")
             self.but_start.setText("Start")
+            self.but_next.setText("Next")
             self.coord_prompt.initValues()
             self.instruct.setEnabled(False)
             self.img_op.setEnabled(True)
@@ -697,10 +698,14 @@ class CurveFinder(QWidget):
         elif state == 1:
             """Pressed Start"""
             self.but_start.setText("Restart")
+            self.but_next.setText("Next")
             self.coord_prompt.initValues()
             self.instruct.setEnabled(False)
             self.img_op.setEnabled(True)
             self.img_op.is_brush = True
+            self.pts_final_p = []
+            self.pts_final_r = []
+            self.pts_eval_r = []
             self.img.source = ORIG_IMG
         elif state == 2:
             """Coordinate all selected"""
