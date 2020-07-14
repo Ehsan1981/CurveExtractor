@@ -22,8 +22,8 @@ AUTHOR = "Bruno-P. Busque"
 MAX_IMG_W = 1100
 MAX_IMG_H = 625
 
-ICON_PATH = "icon.png"
-PH_IMAGE_PATH = "placeholder.png"
+ICON_PATH = "data/icon.png"
+PH_IMAGE_PATH = "data/placeholder.png"
 TEMP_PATH = "temp/"
 ORIG_IMG = TEMP_PATH + "original_img.png"
 COOR_IMG = TEMP_PATH + "coordinate_img.png"
