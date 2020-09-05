@@ -7,24 +7,25 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-import random as rand
+from random import seed, randrange
+from shutil import rmtree
 import numpy as np
 import math as mt
-import shutil
 import cv2
 import sys
 import os
 
 
-VER = "2.0"
-AUTHOR = "Bruno-P. Busque"
+VER = "2.1"
+AUTHOR = "Bruno-Pier Busque"
 
 MAX_IMG_W = 1100
 MAX_IMG_H = 625
 
-ICON_PATH = "data/icon.png"
-PH_IMAGE_PATH = "data/placeholder.png"
-TEMP_PATH = "temp/"
+DATA_PATH = "data/"
+ICON_PATH = DATA_PATH + "icon.png"
+PH_IMAGE_PATH = DATA_PATH + "placeholder.png"
+TEMP_PATH = DATA_PATH + "temp/"
 ORIG_IMG = TEMP_PATH + "original_img.png"
 COOR_IMG = TEMP_PATH + "coordinate_img.png"
 ROTA_IMG = TEMP_PATH + "rotated_img.png"
@@ -334,18 +335,22 @@ class CurveFinder(QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self.setWindowTitle("Curve Finder Ver. {0}".format(VER))
+        self.setWindowTitle("CurveFinder v{0}".format(VER))
         self.setWindowIcon(QIcon(ICON_PATH))
         self.setFixedWidth(1500)
         self.setFixedHeight(750)
 
         # Create a temporary folder
+        if not os.path.exists(DATA_PATH):
+            os.mkdir(DATA_PATH)
         if not os.path.exists(TEMP_PATH):
             os.mkdir(TEMP_PATH)
 
         # Create widgets
-        title_label = QLabel(text="Curve Finder Ver. {0} by {1}".format(VER, AUTHOR))
-        title_label.setFont(QFont("Calibri", 20, QFont.Bold))
+        title_label = QLabel(text="CurveFinder v{0}".format(VER))
+        title_label.setFont(QFont("Helvetica", 20, QFont.Bold))
+        author_label = QLabel(text="by {0}".format(AUTHOR))
+        author_label.setFont(QFont("Calibri", 10))
         self.img = QImage(PH_IMAGE_PATH)
         self.instruct = QInstructBox()
         self.img_op = QImageOptions()
@@ -384,6 +389,7 @@ class CurveFinder(QWidget):
 
         vbox = QVBoxLayout()
         vbox.addWidget(title_label)
+        vbox.addWidget(author_label)
         vbox.addLayout(hbox)
         self.setLayout(vbox)
 
@@ -394,7 +400,7 @@ class CurveFinder(QWidget):
 
     def __del__(self):
         # Remove the temporary folder
-        shutil.rmtree(TEMP_PATH)
+        rmtree(TEMP_PATH)
 
     def browse_for_image(self):
         self.img_src = str(QFileDialog().getOpenFileName(filter="Images (*.png *.bmp *.jpg)")[0])
@@ -567,7 +573,7 @@ class CurveFinder(QWidget):
             img = np.zeros((a, b, 3))
 
             for c in cont:
-                col = (rand.randrange(255), rand.randrange(255), rand.randrange(255))
+                col = (randrange(255), randrange(255), randrange(255))
                 cv2.drawContours(img, c, -1, col)
 
             cv2.imwrite(CONT_IMG, img)
@@ -714,8 +720,8 @@ class CurveFinder(QWidget):
             self.resize_and_rotate()
             self.update_image()
             self.instruct.textbox.setMarkdown("Adjust the thresholding so that the curve you want to extract"
-                                      " is clearly visible.\n\n"
-                                      "When done, press `Next`")
+                                              " is clearly visible.\n\n"
+                                              "When done, press `Next`")
         elif state == 4:
             """Chose the displaying"""
             self.img_op.setEnabled(False)
@@ -725,8 +731,8 @@ class CurveFinder(QWidget):
             self.mask = np.ones(img.shape)
             cv2.imwrite(CTMK_IMG, img)
             self.instruct.textbox.setMarkdown("Press and hold over the curve you want to extract. "
-                                      "When you selected all the curve, press `Next` to extract "
-                                      "the data points.")
+                                              "When you selected all the curve, press `Next` to extract "
+                                              "the data points.")
         elif state == 5:
             """Selected the edges to keep"""
             img = cv2.cvtColor(cv2.imread(CTMK_IMG), cv2.COLOR_BGR2GRAY)
@@ -752,7 +758,7 @@ class CurveFinder(QWidget):
 
 
 if __name__ == "__main__":
-    rand.seed(123456)
+    seed(123456)
     app = QApplication([])
     window = CurveFinder()
     window.show()
