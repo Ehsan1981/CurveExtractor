@@ -1,6 +1,6 @@
-- Remove temp path wirting/reading?
+- Remove temp path writing/reading?
 - Logarithmic axis
-- precision coord
+- Precision coord
 - Reduce large image
-- Adapter x1/x2/y1/y2 to image size
-- after plot, prospose to se image again
+- Adapt x1/x2/y1/y2 to image size
+- After ploting, propose to see image again
