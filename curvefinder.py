@@ -8,6 +8,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 from random import seed, randrange
+from typing import List, Tuple
 from shutil import rmtree
 import numpy as np
 import math as mt
@@ -36,49 +37,58 @@ PLOT_IMG = TEMP_PATH + "plotted_img.png"
 
 
 class QImage(QLabel):
-    signal = pyqtSignal(int, int)
-    holdEnabled = False
-    holding = False
+    """ The class for the big image box """
 
-    def __init__(self, image_path: str):
+    signal: pyqtSignal = pyqtSignal(int, int)
+    holdEnabled: bool = False
+    holding: bool = False
+
+    def __init__(self, image_path: str) -> None:
+        """ Initialise the image of the graph """
         super().__init__()
-        self.setStyleSheet("border: 3px solid gray;")
-        self.img_path = image_path
-        self.source = image_path
+        self.setStyleSheet("border: 3px solid gray;")  # Add borders
+        self.source: str = image_path  # Set the image
 
     @property
-    def source(self):
+    def source(self) -> QPixmap:
+        """ Return the image """
         return self._source
 
     @source.setter
-    def source(self, src):
-        self.img_path = src
-        new_img = QPixmap(src)
-        self.original_image_size = (new_img.height(), new_img.width())
-        self._source = new_img.scaled(MAX_IMG_W, MAX_IMG_H, Qt.KeepAspectRatio)
-        self.new_image_size = (self._source.height(), self._source.width())
-        self.setPixmap(self._source)
+    def source(self, src: str) -> None:
+        """ Set the image and resize it to fit in the box """
+        self.img_path = src  # Save the path
+        new_img = QPixmap(src)  # Load the image
+        self.original_image_size = (new_img.height(), new_img.width())  # Save the original image size
+        self._source = new_img.scaled(MAX_IMG_W, MAX_IMG_H, Qt.KeepAspectRatio)  # Save the rescaled source image
+        self.new_image_size = (self._source.height(), self._source.width())  # Save the rescaled image size
+        self.setPixmap(self._source)  # Display the image
 
-    def mousePressEvent(self, ev: QMouseEvent):
+    def mousePressEvent(self, ev: QMouseEvent) -> None:
+        """ Event when mouse is pressed on the image """
         self.holding = True
         x, y = [self.original_image_size[i]*(ev.x(), ev.y())[i]/self.new_image_size[i] for i in (0, 1)]
         self.signal.emit(x, y)
 
-    def mouseMoveEvent(self, ev: QMouseEvent):
+    def mouseMoveEvent(self, ev: QMouseEvent) -> None:
+        """ Event when mouse is moved on the image """
         if self.holding and self.holdEnabled:
             x, y = [self.original_image_size[i] * (ev.x(), ev.y())[i] / self.new_image_size[i] for i in (0, 1)]
             self.signal.emit(x, y)
 
-    def mouseReleaseEvent(self, ev: QMouseEvent):
+    def mouseReleaseEvent(self, ev: QMouseEvent) -> None:
+        """ Event when mouse is released on the image """
         self.holding = False
 
 
 class QCoord(QVBoxLayout):
+    """ The class for the coordinate inputs box """
 
-    pts_labels = ["X1", "X2", "Y1", "Y2"]
-    pts = [(-1, -1)]*4
+    pts_labels: List[str] = ["X1", "X2", "Y1", "Y2"]
+    pts: List[Tuple[int]] = [(-1, -1)]*4
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """ Initialise the coordinate inputs """
         super().__init__()
 
         # Create the widget
@@ -96,51 +106,60 @@ class QCoord(QVBoxLayout):
         # Initialise the values
         self.initValues()
 
-    def initValues(self):
+    def initValues(self) -> None:
+        """ Initialise the coordinate statuses """
         self.x1_done = False
         self.x2_done = False
         self.y1_done = False
         self.y2_done = False
 
     @property
-    def x1_done(self):
+    def x1_done(self) -> bool:
+        """ Return if x1 is done """
         return self._x1_done
 
     @x1_done.setter
-    def x1_done(self, status):
+    def x1_done(self, status: bool) -> None:
+        """ Set x1 and check the box """
         self._x1_done = status
         self.x1_coord.check.setChecked(status)
         if not status:
             self.pts[0] = (-1, -1)
 
     @property
-    def x2_done(self):
+    def x2_done(self) -> bool:
+        """ Return if x2 is done """
         return self._x2_done
 
     @x2_done.setter
-    def x2_done(self, status):
+    def x2_done(self, status: bool) -> None:
+        """ Set x2 and check the box """
         self._x2_done = status
         self.x2_coord.check.setChecked(status)
         if not status:
             self.pts[1] = (-1, -1)
 
     @property
-    def y1_done(self):
+    def y1_done(self) -> bool:
+        """ Return if y1 is done """
         return self._y1_done
 
     @y1_done.setter
-    def y1_done(self, status):
+    def y1_done(self, status: bool) -> None:
+        """ Set y1 and check the box """
         self._y1_done = status
         self.y1_coord.check.setChecked(status)
         if not status:
             self.pts[2] = (-1, -1)
 
     @property
-    def y2_done(self):
+    def y2_done(self) -> bool:
+        """ Return if y2 is done """
         return self._y2_done
 
     @y2_done.setter
-    def y2_done(self, status):
+    def y2_done(self, status: bool) -> None:
+        """ Set y2 and check the box """
         self._y2_done = status
         self.y2_coord.check.setChecked(status)
         # self.but_next.setEnabled(status)
@@ -153,16 +172,18 @@ class QCoord(QVBoxLayout):
         #                              "Press `Restart` if not.")
 
     class QCoordBox(QHBoxLayout):
+        """ Subclass for the a single coordinate box """
 
-        def __init__(self, coord_label: str):
+        def __init__(self, coord_label: str) -> None:
+            """ Initialise the single coordinate input box """
             super().__init__()
 
             # Set the widgets
-            self.coord_label = coord_label
-            self.label = QLabel(text="{0} :".format(coord_label))
-            self.line = QLineEdit()
+            self.coord_label: str = coord_label
+            self.label: QLabel = QLabel(text="{0} :".format(coord_label))
+            self.line: QLineEdit = QLineEdit()
             self.line.setPlaceholderText("Enter coord. for {0}...".format(coord_label))
-            self.check = QCheckBox(text="{0} placed".format(coord_label))
+            self.check: QCheckBox = QCheckBox(text="{0} placed".format(coord_label))
             self.check.setEnabled(False)
 
             # Create the layout
@@ -172,26 +193,30 @@ class QCoord(QVBoxLayout):
 
 
 class QInstructBox(QVBoxLayout):
+    """ Class for the instruction box widget """
 
-    options = ["Copy Formula - Matlab", "Copy Formula - Python", "Copy Formula - Markdown",
-               "Copy Points - Matlab", "Copy Points - Python", "Copy Points - NumPy", "Copy Points - CSV",
-               "Copy Coeff. - Matlab", "Copy Coeff. - Python", "Copy Coeff. - NumPy", "Copy Poly1D - NumPy"]
+    options: List[str] = ["Copy Formula - Matlab", "Copy Formula - Python", "Copy Formula - Markdown",
+                          "Copy Points - Matlab", "Copy Points - Python", "Copy Points - NumPy", "Copy Points - CSV",
+                          "Copy Coeff. - Matlab", "Copy Coeff. - Python", "Copy Coeff. - NumPy", "Copy Poly1D - NumPy"]
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """ Initialise the Instruction box """
         super().__init__()
 
-        self.combo = QComboBox()
+        # Create the  widgets
+        self.combo: QComboBox = QComboBox()
         self.combo.addItems(self.options)
-        self.but_copy = QPushButton(text="Copy")
+        self.but_copy: QPushButton = QPushButton(text="Copy")
 
-        hbox = QHBoxLayout()
-        hbox.addWidget(self.combo, stretch=1)
-        hbox.addWidget(self.but_copy)
-
-        self.textbox = QTextEdit()
+        self.textbox: QTextEdit = QTextEdit()
         self.textbox.setMarkdown("Select a graph to start.")
         self.textbox.setEnabled(False)
         self.textbox.setFont(QFont("Calibri", 12, QFont.Bold))
+
+        # Create the layout
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.combo, stretch=1)
+        hbox.addWidget(self.but_copy)
 
         vbox = QVBoxLayout()
         vbox.addWidget(self.textbox)
@@ -199,70 +224,73 @@ class QInstructBox(QVBoxLayout):
 
         self.addLayout(vbox)
 
-    def setEnabled(self, a0: bool):
+    def setEnabled(self, a0: bool) -> None:
+        """ Method to enable or disable the copy button and combobox """
         self.combo.setEnabled(a0)
         self.but_copy.setEnabled(a0)
 
 
 class QImageOptions(QVBoxLayout):
+    """ Class to create the images options widget """
 
-    options = ["Canny", "Global Tresholding", "Adaptive Mean Tresholding", "Adaptive Gausian Tresholding",
-               "Otsu's Tresholding", "Otsu's Tresholding + Gausian Blur"]
-    treshs = [(True, True), (True, True), (False, False), (False, False),
-              (False, False), (False, False), (False, False)]
-    tresh_ext = [(-1000, 1000, -1000, 1000), (0, 255, 0, 255), (0, 1, 0, 1), (0, 1, 0, 1),
-                 (0, 1, 0, 1), (0, 1, 0, 1), (0, 1, 0, 1)]
+    options: List[str] = ["Canny", "Global Tresholding", "Adaptive Mean Tresholding", "Adaptive Gausian Tresholding",
+                          "Otsu's Tresholding", "Otsu's Tresholding + Gausian Blur"]
+    treshs: List[Tuple[bool]] = [(True, True), (True, True), (False, False), (False, False),
+                                 (False, False), (False, False), (False, False)]
+    tresh_ext: List[Tuple[int]] = [(-1000, 1000, -1000, 1000), (0, 255, 0, 255), (0, 1, 0, 1), (0, 1, 0, 1),
+                                   (0, 1, 0, 1), (0, 1, 0, 1), (0, 1, 0, 1)]
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """ Initialise the image options """
         super().__init__()
 
         # Set the radios
-        self.label0 = QLabel(text="Wanted formula :")
-        self.y_from_x = QRadioButton(text="y = f(x)")
+        self.label0: QLabel = QLabel(text="Wanted formula :")
+        self.y_from_x: QRadioButton = QRadioButton(text="y = f(x)")
         self.y_from_x.setChecked(True)
-        self.x_from_y = QRadioButton(text="x = f(y)")
+        self.x_from_y: QRadioButton = QRadioButton(text="x = f(y)")
 
+        # Set the combobox
+        self.combo: QComboBox = QComboBox()
+        self.combo.addItems(self.options)
+        self.combo.currentTextChanged.connect(self.combo_change)
+
+        # Set the first labeled slider
+        self.label1: QLabel = QLabel(text="Tresh. 1")
+        self.slider1: QSlider = QSlider(Qt.Horizontal)
+        self.slider1.setMinimum(-1000)
+        self.slider1.setMaximum(1000)
+        self.slider1.setTickInterval(100)
+        self.slider1.setTickPosition(QSlider.TicksBelow)
+
+        # Set the second labeled slider
+        self.label2: QLabel = QLabel(text="Tresh. 2")
+        self.slider2: QSlider = QSlider(Qt.Horizontal)
+        self.slider2.setMinimum(-1000)
+        self.slider2.setMaximum(1000)
+        self.slider2.setTickInterval(100)
+        self.slider2.setTickPosition(QSlider.TicksBelow)
+
+        # Set the brush/order spinbox
+        self.label3: QLabel = QLabel()
+        self.spinbox: QSpinBox = QSpinBox()
+        self.spinbox.setMinimum(0)
+        self.is_brush: bool = True
+
+        # Create the layout
         hb0 = QHBoxLayout()
         hb0.addWidget(self.label0)
         hb0.addStretch(1)
         hb0.addWidget(self.y_from_x)
         hb0.addWidget(self.x_from_y)
 
-        # Set the combobox
-        self.combo = QComboBox()
-        self.combo.addItems(self.options)
-        self.combo.currentTextChanged.connect(self.combo_change)
-
-        # Set the first labeled slider
-        self.label1 = QLabel(text="Tresh. 1")
-        self.slider1 = QSlider(Qt.Horizontal)
-        self.slider1.setMinimum(-1000)
-        self.slider1.setMaximum(1000)
-        self.slider1.setTickInterval(100)
-        self.slider1.setTickPosition(QSlider.TicksBelow)
-
         hb1 = QHBoxLayout()
         hb1.addWidget(self.label1)
         hb1.addWidget(self.slider1)
 
-        # Set the second labeled slider
-        self.label2 = QLabel(text="Tresh. 2")
-        self.slider2 = QSlider(Qt.Horizontal)
-        self.slider2.setMinimum(-1000)
-        self.slider2.setMaximum(1000)
-        self.slider2.setTickInterval(100)
-        self.slider2.setTickPosition(QSlider.TicksBelow)
-
         hb2 = QHBoxLayout()
         hb2.addWidget(self.label2)
         hb2.addWidget(self.slider2)
-
-        # Set the brush/order spinbox
-        self.label3 = QLabel()
-        self.spinbox = QSpinBox()
-        self.spinbox.setMinimum(0)
-        self.is_brush = True
-        self.spinbox.valueChanged.connect(self.update_brush_label)
 
         hb3 = QHBoxLayout()
         hb3.addWidget(self.label3)
@@ -275,7 +303,8 @@ class QImageOptions(QVBoxLayout):
         self.addLayout(hb2)
         self.addLayout(hb3)
 
-    def combo_change(self, text):
+    def combo_change(self, text) -> None:
+        """ Method to change the slider values based on the combobox text """
         for (i, op) in enumerate(self.options):
             if text == op:
                 self.slider1.setEnabled(self.treshs[i][0])
@@ -287,14 +316,11 @@ class QImageOptions(QVBoxLayout):
                 self.slider2.setMinimum(self.tresh_ext[i][2])
                 self.slider2.setMaximum(self.tresh_ext[i][3])
 
-    def setEnabled(self, a0: bool):
+    def setEnabled(self, a0: bool) -> None:
+        """ Method to disable or enable the combobox and sliders """
         self.combo.setEnabled(a0)
         self.slider1.setEnabled(a0)
         self.slider2.setEnabled(a0)
-
-    def update_brush_label(self):
-        if not self.is_brush:
-            self.label3.setText("Fit order :".format(self.spinbox.value()))
 
     @property
     def is_brush(self):
@@ -316,33 +342,35 @@ class QImageOptions(QVBoxLayout):
 
 
 class CurveFinder(QWidget):
+    """ The application in itself """
 
-    img_src = PH_IMAGE_PATH
-    coord = np.zeros(4, dtype=float)
-    pts_colors = [(204, 0, 0), (0, 153, 0), (0, 0, 153), (204, 204, 0)]
-    pts_labels = ["X1", "X2", "Y1", "Y2"]
-    pts_final_p = []
-    pts_final_r = []
-    pts_eval_r = []
-    curve1 = {}
-    curve2 = {}
-    Xpr = 0
-    Ypr = 0
-    coef = []
-    order = 5
-    var = "x"
-    xlin = True  # Implement log
-    ylin = True  # Implement log
-    mask = None
+    img_src: str = PH_IMAGE_PATH
+    coord: np.ndarray = np.zeros(4, dtype=float)
+    pts_colors: List[Tuple[int]] = [(204, 0, 0), (0, 153, 0), (0, 0, 153), (204, 204, 0)]
+    pts_labels: List[str] = ["X1", "X2", "Y1", "Y2"]
+    pts_final_p: List[np.ndarray] = []
+    pts_final_r: List[np.ndarray] = []
+    pts_eval_r: List[np.ndarray] = []
+    curve1: dict = {}
+    curve2: dict = {}
+    Xpr: float = 0.0
+    Ypr: float = 0.0
+    coef: tuple = []
+    order: int = 5
+    var: str = "x"
+    xlin: bool = True  # Implement log
+    ylin: bool = True  # Implement log
+    mask: bool = None
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """ Initialise the app """
         QWidget.__init__(self)
         self.setWindowTitle("CurveFinder v{0}".format(VER))
         self.setWindowIcon(QIcon(ICON_PATH))
         self.setFixedWidth(1500)
         self.setFixedHeight(750)
 
-        # Create a temporary folder
+        # Create a temporary and data folder
         if not os.path.exists(DATA_PATH):
             os.mkdir(DATA_PATH)
         if not os.path.exists(TEMP_PATH):
@@ -353,13 +381,13 @@ class CurveFinder(QWidget):
         title_label.setFont(QFont("Helvetica", 20, QFont.Bold))
         author_label = QLabel(text="by {0}".format(AUTHOR))
         author_label.setFont(QFont("Calibri", 10))
-        self.img = QImage(PH_IMAGE_PATH)
-        self.instruct = QInstructBox()
-        self.img_op = QImageOptions()
-        self.coord_prompt = QCoord()
-        self.but_browse = QPushButton(text="Select an image")
-        self.but_start = QPushButton(text="Start")
-        self.but_next = QPushButton(text="Next")
+        self.img: QImage = QImage(PH_IMAGE_PATH)
+        self.instruct: QInstructBox = QInstructBox()
+        self.img_op: QImageOptions = QImageOptions()
+        self.coord_prompt: QCoord = QCoord()
+        self.but_browse: QPushButton = QPushButton(text="Select an image")
+        self.but_start: QPushButton = QPushButton(text="Start")
+        self.but_next: QPushButton = QPushButton(text="Next")
 
         # Bind the signals
         self.img.signal.connect(self.add_position)
@@ -400,23 +428,26 @@ class CurveFinder(QWidget):
 
         self.show()
 
-    def __del__(self):
-        # Remove the temporary folder
+    def __del__(self) -> None:
+        """ Remove the temporary folder """
         rmtree(TEMP_PATH)
 
-    def browse_for_image(self):
+    def browse_for_image(self) -> None:
+        """ Method to select an image """
         self.img_src = str(QFileDialog().getOpenFileName(filter="Images (*.png *.bmp *.jpg)")[0])
         if self.img_src != "":
             self.img.source = self.img_src
             self.app_state = 0  # Return to initial state
 
-    def start(self):
+    def start(self) -> None:
+        """ Method for the Start button """
         self.instruct.textbox.setMarkdown("Click on 2 points for each axis in this order:\n"
                                           "```\n - X1\n - X2\n - Y1\n - Y2\n```")
         cv2.imwrite(ORIG_IMG, cv2.imread(self.img_src))
         self.app_state = 1
 
-    def next(self):
+    def next(self) -> None:
+        """ Method for the next button. It changes the state of the app """
         if self.app_state == 2 and self.verify_coord():
             self.app_state = 3
 
@@ -429,7 +460,8 @@ class CurveFinder(QWidget):
         elif self.app_state == 5:
             self.app_state = 6
 
-    def verify_coord(self):
+    def verify_coord(self) -> bool:
+        """ Method to verify if the coordinates are entered in the input boxes """
         good_coord = True
         for (i, coord) in enumerate([self.coord_prompt.x1_coord, self.coord_prompt.x2_coord,
                                      self.coord_prompt.y1_coord, self.coord_prompt.y2_coord]):
@@ -447,7 +479,8 @@ class CurveFinder(QWidget):
 
         return good_coord
 
-    def add_position(self, x: int, y: int):
+    def add_position(self, x: int, y: int) -> None:
+        """ Method used when clicking with the mouse on the image """
         if self.app_state == 1:
             if not self.coord_prompt.x1_done:
                 self.draw_points(x1=(x, y))
@@ -466,7 +499,8 @@ class CurveFinder(QWidget):
         elif self.app_state == 4:
             self.draw_mask(x, y)
 
-    def draw_points(self, x1: tuple = None, x2: tuple = None, y1: tuple = None, y2: tuple = None):
+    def draw_points(self, x1: tuple = None, x2: tuple = None, y1: tuple = None, y2: tuple = None) -> None:
+        """ Method to draw the point on th image """
         if x1 is not None:
             self.coord_prompt.pts[0] = x1
         if x2 is not None:
@@ -486,7 +520,8 @@ class CurveFinder(QWidget):
         cv2.imwrite(COOR_IMG, img)
         self.img.source = COOR_IMG
 
-    def draw_mask(self, x: int, y: int):
+    def draw_mask(self, x: int, y: int) -> None:
+        """ Method to draw the brush on the image """
         alpha = 0.3
         radius = self.img_op.spinbox.value()
         img = cv2.imread(CONT_IMG)
@@ -497,7 +532,11 @@ class CurveFinder(QWidget):
         cv2.imwrite(CONT_IMG, img)
         self.img.source = CONT_IMG
 
-    def resize_and_rotate(self):
+    def resize_and_rotate(self) -> None:
+        """
+        Method to rotate the image after the coordinate are confirmed.
+        It also make the relation between the pixel space and the graph space.
+        """
         if self.xlin:
             X1 = self.curve1["X1"] = self.coord_prompt.pts[0][0]
             X2 = self.curve1["X2"] = self.coord_prompt.pts[1][0]
@@ -544,7 +583,8 @@ class CurveFinder(QWidget):
         cv2.imwrite(ROTA_IMG, img)
         self.img.source = ROTA_IMG
 
-    def update_image(self):
+    def update_image(self) -> None:
+        """ Method to update the image with the contour chosen in the combobox """
         if self.app_state == 3:
             img = cv2.cvtColor(cv2.imread(ROTA_IMG), cv2.COLOR_BGR2GRAY)
             tr1, tr2 = [self.img_op.slider1.value(), self.img_op.slider2.value()]
@@ -581,19 +621,22 @@ class CurveFinder(QWidget):
             cv2.imwrite(CONT_IMG, img)
             self.img.source = CONT_IMG
 
-    def pixel_to_graph(self, pt):
+    def pixel_to_graph(self, pt: tuple) -> np.ndarray:
+        """ Method to convert a pixel coordinate to a graph coordinate """
         x, y = pt
         a = self.Xpr * (x - self.curve1["X1"]) + self.coord[0]
         b = self.Ypr * (y - self.curve2["Y1"]) + self.coord[2]
         return np.array([a, b])
 
-    def graph_to_pixel(self, pt):
+    def graph_to_pixel(self, pt: tuple) -> np.ndarray:
+        """ Method to convert a graph coordinate to a pixel coordinate """
         a, b = pt
         x = (a - self.coord[0])/self.Xpr + self.curve1["X1"]
         y = (b - self.coord[2])/self.Ypr + self.curve2["Y1"]
         return np.array([x, y])
 
-    def set_formula(self, do: bool = True):
+    def set_formula(self, do: bool = True) -> None:
+        """ Method to update the formula displayed in the instruction box """
         if do and self.app_state >= 5:
             x, y = [np.array(self.pts_final_r)[:, 0], np.array(self.pts_final_r)[:, 1]]
             if self.img_op.y_from_x.isChecked():
@@ -640,7 +683,8 @@ class CurveFinder(QWidget):
             if self.app_state == 6:
                 self.plot_points()
 
-    def plot_points(self):
+    def plot_points(self) -> None:
+        """ Method to generate the plot image and display it """
         fig = Figure(figsize=(11.0, 6.25), dpi=100)
         canvas = FigureCanvas(fig)
         ax = fig.gca()
@@ -658,7 +702,8 @@ class CurveFinder(QWidget):
         cv2.imwrite(PLOT_IMG, img)
         self.img.source = PLOT_IMG
 
-    def copy_text(self):
+    def copy_text(self) -> None:
+        """ Method to copy certain data """
         mode = self.instruct.combo.currentText()
 
         if mode == "Copy Formula - Matlab":
@@ -814,11 +859,13 @@ class CurveFinder(QWidget):
         QApplication.clipboard().setText(text)
 
     @property
-    def app_state(self):
+    def app_state(self) -> int:
+        """ Method to get the current app state """
         return self._app_state
 
     @app_state.setter
-    def app_state(self, state):
+    def app_state(self, state: int) -> None:
+        """ Method where the sequence of the app is handled """
         self._app_state = state
 
         if state == 0:
