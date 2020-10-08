@@ -143,10 +143,10 @@ class QCoord(QVBoxLayout):
     def y2_done(self, status):
         self._y2_done = status
         self.y2_coord.check.setChecked(status)
-        #self.but_next.setEnabled(status)
+        # self.but_next.setEnabled(status)
         if not status:
             self.pts[3] = (-1, -1)
-        #else:
+        # else:
         #    self.instruct.setMarkdown("Enter the graph coordinates for each points.\n"
         #                              "\n"
         #                              "Press `Next` if your satisfied with your points.\n"
@@ -173,7 +173,9 @@ class QCoord(QVBoxLayout):
 
 class QInstructBox(QVBoxLayout):
 
-    options = ["Copy formula (Markdown)", "Copy retrieved points", "Copy Coef. for Numpy"]
+    options = ["Copy Formula - Matlab", "Copy Formula - Python", "Copy Formula - Markdown",
+               "Copy Points - Matlab", "Copy Points - Python", "Copy Points - NumPy", "Copy Points - CSV",
+               "Copy Coeff. - Matlab", "Copy Coeff. - Python", "Copy Coeff. - NumPy", "Copy Poly1D - NumPy"]
 
     def __init__(self):
         super().__init__()
@@ -659,7 +661,29 @@ class CurveFinder(QWidget):
     def copy_text(self):
         mode = self.instruct.combo.currentText()
 
-        if mode == "Copy formula (Markdown)":
+        if mode == "Copy Formula - Matlab":
+            formula = ""
+            for (i, c) in enumerate(self.coef):
+                if self.order - i > 1:
+                    formula += "+ {0}*{1}.^{2} ".format(c, self.var, self.order - i)
+                elif self.order - i == 1:
+                    formula += "+ {0}*{1} ".format(c, self.var)
+                else:
+                    formula += "+ {0}".format(c)
+            text = formula
+
+        elif mode == "Copy Formula - Python":
+            formula = ""
+            for (i, c) in enumerate(self.coef):
+                if self.order - i > 1:
+                    formula += "+ {0}*{1}**({2}) ".format(c, self.var, self.order - i)
+                elif self.order - i == 1:
+                    formula += "+ {0}*{1} ".format(c, self.var)
+                else:
+                    formula += "+ {0}".format(c)
+            text = formula
+
+        elif mode == "Copy Formula - Markdown":
             formula = ""
             for (i, c) in enumerate(self.coef):
                 if self.order - i > 1:
@@ -669,9 +693,95 @@ class CurveFinder(QWidget):
                 else:
                     formula += "{0:+.2e}".format(c)
             text = formula
-        elif mode == "Copy retrieved points":
-            text = str(self.pts_final_r)
-        elif mode == "Copy Coef. for Numpy":
+
+        elif mode == "Copy Points - Matlab":
+            text = "x = ["
+            x_r = []
+            y_r = []
+
+            for d in self.pts_final_r:
+                x_r.append(d[0])
+                y_r.append(d[1])
+
+            for (i, x) in enumerate(x_r):
+                if i == 0:
+                    text += "{0}".format(x)
+                else:
+                    text += " {0}".format(x)
+
+            text += "];\ny = ["
+            for (i, y) in enumerate(y_r):
+                if i == 0:
+                    text += "{0}".format(y)
+                else:
+                    text += " {0}".format(y)
+
+            text += "];"
+
+        elif mode == "Copy Points - Python":
+            text = "x = ["
+            x_r = []
+            y_r = []
+
+            for d in self.pts_final_r:
+                x_r.append(d[0])
+                y_r.append(d[1])
+
+            for (i, x) in enumerate(x_r):
+                if i == 0:
+                    text += "{0}".format(x)
+                else:
+                    text += ", {0}".format(x)
+
+            text += "];\ny = ["
+            for (i, y) in enumerate(y_r):
+                if i == 0:
+                    text += "{0}".format(y)
+                else:
+                    text += ", {0}".format(y)
+
+            text += "];"
+
+        elif mode == "Copy Points - NumPy":
+            text = "pts = np.array([["
+            x_r = []
+            y_r = []
+
+            for d in self.pts_final_r:
+                x_r.append(d[0])
+                y_r.append(d[1])
+
+            for (i, x) in enumerate(x_r):
+                if i == 0:
+                    text += "{0}".format(x)
+                else:
+                    text += ", {0}".format(x)
+
+            text += "], ["
+            for (i, y) in enumerate(y_r):
+                if i == 0:
+                    text += "{0}".format(y)
+                else:
+                    text += ", {0}".format(y)
+
+            text += "]])"
+
+        elif mode == "Copy Points - CSV":
+            text = "x, y\n"
+
+            for d in self.pts_final_r:
+                text += "{0}, {1}\n".format(d[0], d[1])
+
+        elif mode == "Copy Coeff. - Matlab":
+            text = "["
+            for (i, coef) in enumerate(self.coef):
+                if i == 0:
+                    text += "{0}".format(coef)
+                else:
+                    text += " {0}".format(coef)
+            text += "]"
+
+        elif mode == "Copy Coeff. - Python":
             text = "["
             for (i, coef) in enumerate(self.coef):
                 if i == 0:
@@ -679,6 +789,25 @@ class CurveFinder(QWidget):
                 else:
                     text += ", {0}".format(coef)
             text += "]"
+
+        elif mode == "Copy Coeff. - NumPy":
+            text = "np.array(["
+            for (i, coef) in enumerate(self.coef):
+                if i == 0:
+                    text += "{0}".format(coef)
+                else:
+                    text += ", {0}".format(coef)
+            text += "])"
+
+        elif mode == "Copy Poly1D - NumPy":
+            text = "p = np.poly1d(["
+            for (i, coef) in enumerate(self.coef):
+                if i == 0:
+                    text += "{0}".format(coef)
+                else:
+                    text += ", {0}".format(coef)
+            text += "])"
+
         else:
             return
 
