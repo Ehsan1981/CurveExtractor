@@ -1,4 +1,3 @@
 - Remove temp path writing/reading?
-- Logarithmic axis
 - Precision coord
 - Reduce large image

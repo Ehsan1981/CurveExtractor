@@ -1,6 +1,6 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QFileDialog,\
-    QCheckBox, QLineEdit, QMessageBox, QTextEdit, QSlider, QComboBox, QRadioButton, QSpinBox
+    QCheckBox, QLineEdit, QMessageBox, QTextEdit, QSlider, QComboBox, QRadioButton, QSpinBox, QButtonGroup
 from PyQt5.QtGui import QPixmap, QMouseEvent, QFont, QIcon
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -250,9 +250,28 @@ class QImageOptions(QVBoxLayout):
 
         # Set the radios
         self.label0: QLabel = QLabel(text="Wanted formula :")
+        self.bg_formula: QButtonGroup = QButtonGroup()
         self.y_from_x: QRadioButton = QRadioButton(text="y = f(x)")
         self.y_from_x.setChecked(True)
         self.x_from_y: QRadioButton = QRadioButton(text="x = f(y)")
+        self.bg_formula.addButton(self.y_from_x)
+        self.bg_formula.addButton(self.x_from_y)
+
+        self.labelx: QLabel = QLabel(text="X-axis is :")
+        self.bg_x: QButtonGroup = QButtonGroup()
+        self.x_lin: QRadioButton = QRadioButton(text="Lin.")
+        self.x_lin.setChecked(True)
+        self.x_log: QRadioButton = QRadioButton(text="Log.")
+        self.bg_x.addButton(self.x_lin)
+        self.bg_x.addButton(self.x_log)
+
+        self.labely: QLabel = QLabel(text="Y-axis is :")
+        self.bg_y: QButtonGroup = QButtonGroup()
+        self.y_lin: QRadioButton = QRadioButton(text="Lin.")
+        self.y_lin.setChecked(True)
+        self.y_log: QRadioButton = QRadioButton(text="Log.")
+        self.bg_y.addButton(self.y_lin)
+        self.bg_y.addButton(self.y_log)
 
         # Set the combobox
         self.combo: QComboBox = QComboBox()
@@ -289,23 +308,33 @@ class QImageOptions(QVBoxLayout):
         hb0.addWidget(self.x_from_y)
 
         hb1 = QHBoxLayout()
-        hb1.addWidget(self.label1)
-        hb1.addWidget(self.slider1)
+        hb1.addWidget(self.labelx)
+        hb1.addWidget(self.x_lin)
+        hb1.addWidget(self.x_log)
+        hb1.addStretch(1)
+        hb1.addWidget(self.labely)
+        hb1.addWidget(self.y_lin)
+        hb1.addWidget(self.y_log)
 
         hb2 = QHBoxLayout()
-        hb2.addWidget(self.label2)
-        hb2.addWidget(self.slider2)
+        hb2.addWidget(self.label1)
+        hb2.addWidget(self.slider1)
 
         hb3 = QHBoxLayout()
-        hb3.addWidget(self.label3)
-        hb3.addWidget(self.spinbox)
+        hb3.addWidget(self.label2)
+        hb3.addWidget(self.slider2)
+
+        hb4 = QHBoxLayout()
+        hb4.addWidget(self.label3)
+        hb4.addWidget(self.spinbox)
 
         # Set the final layout
         self.addLayout(hb0)
-        self.addWidget(self.combo)
         self.addLayout(hb1)
+        self.addWidget(self.combo)
         self.addLayout(hb2)
         self.addLayout(hb3)
+        self.addLayout(hb4)
 
     def combo_change(self, text) -> None:
         """ Method to change the slider values based on the combobox text """
@@ -355,16 +384,15 @@ class CurveFinder(QWidget):
     pts_final_p: List[np.ndarray] = []
     pts_final_r: List[np.ndarray] = []
     pts_eval_r: List[np.ndarray] = []
-    curve1: dict = {}
-    curve2: dict = {}
+    x_axis_curve: dict = {}
+    y_axis_curve: dict = {}
     Xpr: float = 0.0
     Ypr: float = 0.0
     coef: tuple = []
     order: int = 5
     var: str = "x"
-    xlin: bool = True  # Implement log
-    ylin: bool = True  # Implement log
-    mask: bool = None
+    islog: List[bool] = [False, False]
+    mask: np.ndarray = None
 
     def __init__(self) -> None:
         """ Initialise the app """
@@ -405,6 +433,10 @@ class CurveFinder(QWidget):
         self.img_op.spinbox.valueChanged.connect(self.set_formula)
         self.img_op.y_from_x.toggled.connect(self.set_formula)
         self.img_op.x_from_y.toggled.connect(self.set_formula)
+        self.img_op.x_lin.toggled.connect(self.update_lin_log)
+        self.img_op.x_log.toggled.connect(self.update_lin_log)
+        self.img_op.y_lin.toggled.connect(self.update_lin_log)
+        self.img_op.y_log.toggled.connect(self.update_lin_log)
 
         # Create the layout
         options = QVBoxLayout()
@@ -446,8 +478,6 @@ class CurveFinder(QWidget):
 
     def start(self) -> None:
         """ Method for the Start button """
-        self.instruct.textbox.setMarkdown("Click on 2 points for each axis in this order:\n"
-                                          "```\n - X1\n - X2\n - Y1\n - Y2\n```")
         cv2.imwrite(ORIG_IMG, cv2.imread(self.img_src))
         self.app_state = 1
 
@@ -544,53 +574,74 @@ class CurveFinder(QWidget):
     def resize_and_rotate(self) -> None:
         """
         Method to rotate the image after the coordinate are confirmed.
-        It also make the relation between the pixel space and the graph space.
         """
-        if self.xlin:
-            X1 = self.curve1["X1"] = self.coord_prompt.pts[0][0]
-            X2 = self.curve1["X2"] = self.coord_prompt.pts[1][0]
-            XL = self.curve2["XL"] = self.coord_prompt.pts[2][0]
-            dX = self.curve2["dX"] = self.coord_prompt.pts[3][0] - XL
+        X1_x = self.x_axis_curve["X1"] = self.coord_prompt.pts[0][0]
+        X1_y = self.x_axis_curve["Y1"] = self.coord_prompt.pts[0][1]
+        X2_x = self.x_axis_curve["X2"] = self.coord_prompt.pts[1][0]
+        X2_y = self.x_axis_curve["Y2"] = self.coord_prompt.pts[1][1]
+        Y1_x = self.y_axis_curve["X1"] = self.coord_prompt.pts[2][0]
+        Y1_y = self.y_axis_curve["Y1"] = self.coord_prompt.pts[2][1]
+        Y2_x = self.y_axis_curve["X2"] = self.coord_prompt.pts[3][0]
+        Y2_y = self.y_axis_curve["Y2"] = self.coord_prompt.pts[3][1]
+
+        Ax = self.x_axis_curve["A"] = (X2_y - X1_y)/(X2_x - X1_x)
+        Y_dx = Y2_x - Y1_x
+        if Y_dx == 0:
+            self.y_axis_curve["A"] = mt.inf
+            X0 = Y1_x
         else:
-            X1 = self.curve1["X1"] = mt.log10(self.coord_prompt.pts[0][0])
-            X2 = self.curve1["X2"] = mt.log10(self.coord_prompt.pts[1][0])
-            XL = self.curve2["XL"] = mt.log10(self.coord_prompt.pts[2][0])
-            dX = self.curve2["dX"] = mt.log10(self.coord_prompt.pts[3][0]) - XL
+            Ay = self.y_axis_curve["A"] = (Y2_y - Y1_y)/Y_dx
+            X0 = (Ay*Y1_x - Ax*X1_x + X1_y - Y1_y)/(Ay - Ax)
 
-        if self.ylin:
-            Y1 = self.curve2["Y1"] = self.coord_prompt.pts[2][1]
-            Y2 = self.curve2["Y2"] = self.coord_prompt.pts[3][1]
-            YL = self.curve1["YL"] = self.coord_prompt.pts[0][1]
-            dY = self.curve1["dY"] = self.coord_prompt.pts[1][1] - YL
-        else:
-            Y1 = self.curve2["Y1"] = mt.log10(self.coord_prompt.pts[2][1])
-            Y2 = self.curve2["Y2"] = mt.log10(self.coord_prompt.pts[3][1])
-            YL = self.curve1["YL"] = mt.log10(self.coord_prompt.pts[0][1])
-            dY = self.curve1["dY"] = mt.log10(self.coord_prompt.pts[1][1]) - YL
+        Y0 = Ax*(X0 - X1_x) + X1_y
+        angle_x = mt.atan((X2_y - X1_y)/(X2_x - X1_x))
+        angle_y = mt.atan(-(Y2_x - Y1_x)/(Y2_y - Y1_y))
+        angle = (angle_x + angle_y)/2
 
-        A1 = self.curve1["A1"] = dY / (X2 - X1)
-        A2 = self.curve2["A2"] = (Y2 - Y1) / dX
-
-        X0 = int((A1 * X1 - A2 * XL + Y1 - YL) / (A1 - A2))
-        Y0 = int(A1 * (X0 - X1) + YL)
-        origin = (X0, Y0)
-        angle = theta = (mt.atan(dY / (X2 - X1)) + mt.atan(-dX / (Y2 - Y1))) / 2
-
-        pts_prime = np.zeros(4, dtype=tuple)
-        pts_prime[0] = (int(X0 + (X1 - X0) / mt.cos(theta)), Y0)
-        pts_prime[1] = (int(X0 + (X2 - X0) / mt.cos(theta)), Y0)
-        pts_prime[2] = (X0, int(Y0 + (Y1 - Y0) / mt.cos(theta)))
-        pts_prime[3] = (X0, int(Y0 + (Y2 - Y0) / mt.cos(theta)))
-
-        self.Xpr = (self.coord[1] - self.coord[0]) / (X2 - X1)
-        self.Ypr = (self.coord[3] - self.coord[2]) / (Y2 - Y1)
-
-        M = cv2.getRotationMatrix2D(origin, 180 * angle / mt.pi, 1)
+        R = cv2.getRotationMatrix2D((X0, Y0), 180*angle/mt.pi, 1)
         img = cv2.imread(self.img_src)
-        img = cv2.warpAffine(img, M, img.shape[1::-1], flags=cv2.INTER_LINEAR)
+        img = cv2.warpAffine(img, R, img.shape[1::-1], flags=cv2.INTER_LINEAR)
 
         cv2.imwrite(ROTA_IMG, img)
         self.img.source = ROTA_IMG
+
+        self.x_axis_curve["Y_p"] = Y0
+        self.x_axis_curve["X1_p"] = X0 + (X1_x - X0)/mt.cos(angle)
+        self.x_axis_curve["X2_p"] = X0 + (X2_x - X0)/mt.cos(angle)
+
+        self.y_axis_curve["X_p"] = X0
+        self.y_axis_curve["Y1_p"] = Y0 + (Y1_y - Y0)/mt.cos(angle)
+        self.y_axis_curve["Y2_p"] = Y0 + (Y2_y - Y0)/mt.cos(angle)
+        self.update_lin_log()
+
+    def update_lin_log(self):
+        """
+        Method to update the axis to a log or a linear and
+        make the relation between graph and pixel space.
+        """
+        if self.app_state >= 3:
+            if self.img_op.x_lin.isChecked():
+                X1 = self.coord[0]
+                X2 = self.coord[1]
+            else:
+                X1 = mt.log10(self.coord[0])
+                X2 = mt.log10(self.coord[1])
+
+            X1_p = self.x_axis_curve["X1_p"]
+            X2_p = self.x_axis_curve["X2_p"]
+            self.Xpr = (X2 - X1)/(X2_p - X1_p)
+
+            if self.img_op.y_lin.isChecked():
+                Y1 = self.coord[2]
+                Y2 = self.coord[3]
+            else:
+                Y1 = mt.log10(self.coord[2])
+                Y2 = mt.log10(self.coord[3])
+
+            Y1_p = self.y_axis_curve["Y1_p"]
+            Y2_p = self.y_axis_curve["Y2_p"]
+            self.Ypr = (Y2 - Y1)/(Y2_p - Y1_p)
+            self.set_formula()
 
     def update_image(self) -> None:
         """ Method to update the image with the contour chosen in the combobox """
@@ -633,36 +684,70 @@ class CurveFinder(QWidget):
     def pixel_to_graph(self, pt: tuple) -> np.ndarray:
         """ Method to convert a pixel coordinate to a graph coordinate """
         x, y = pt
-        a = self.Xpr * (x - self.curve1["X1"]) + self.coord[0]
-        b = self.Ypr * (y - self.curve2["Y1"]) + self.coord[2]
+        if self.img_op.x_lin.isChecked():
+            a = self.Xpr*(x - self.x_axis_curve["X1_p"]) + self.coord[0]
+        else:
+            a = mt.pow(10, self.Xpr*(x - self.x_axis_curve["X1_p"]) + mt.log10(self.coord[0]))
+        if self.img_op.y_lin.isChecked():
+            b = self.Ypr*(y - self.y_axis_curve["Y1_p"]) + self.coord[2]
+        else:
+            b = mt.pow(10, self.Ypr*(y - self.y_axis_curve["Y1_p"]) + mt.log10(self.coord[2]))
         return np.array([a, b])
 
     def graph_to_pixel(self, pt: tuple) -> np.ndarray:
         """ Method to convert a graph coordinate to a pixel coordinate """
         a, b = pt
-        x = (a - self.coord[0])/self.Xpr + self.curve1["X1"]
-        y = (b - self.coord[2])/self.Ypr + self.curve2["Y1"]
+        if self.img_op.x_lin:
+            x = (a - self.coord[0])/self.Xpr + self.x_axis_curve["X1_p"]
+        else:
+            x = (mt.log10(a) - mt.log10(self.coord[0]))/self.Xpr + self.x_axis_curve["X1_p"]
+        if self.img_op.y_lin:
+            y = (b - self.coord[2])/self.Ypr + self.y_axis_curve["Y1_p"]
+        else:
+            y = (mt.log10(b) - mt.log10(self.coord[2]))/self.Ypr + self.y_axis_curve["Y1_p"]
         return np.array([x, y])
 
     def set_formula(self, do: bool = True) -> None:
         """ Method to update the formula displayed in the instruction box """
         if do and self.app_state >= 5:
-            x, y = [np.array(self.pts_final_r)[:, 0], np.array(self.pts_final_r)[:, 1]]
+            if self.img_op.x_lin.isChecked():
+                x = np.array(self.pts_final_r)[:, 0]
+                x_log = False
+            else:
+                x = np.log10(self.pts_final_r)[:, 0]
+                x_log = True
+            if self.img_op.y_lin.isChecked():
+                y = np.array(self.pts_final_r)[:, 1]
+                y_log = False
+            else:
+                y = np.log10(self.pts_final_r)[:, 1]
+                y_log = True
+
             if self.img_op.y_from_x.isChecked():
                 var = "x"
                 a = x
                 b = y
+                a_log = x_log
+                b_log = y_log
             else:
                 var = "y"
                 a = y
                 b = x
+                a_log = y_log
+                b_log = x_log
 
             self.var = var
+            self.islog = [a_log, b_log]
             self.order = order = self.img_op.spinbox.value()
             self.coef = coef = np.polyfit(a, b, order)
             b = np.poly1d(coef)
             eval_a = np.linspace(min(a), max(a), 100)
             eval_b = b(eval_a)
+
+            if a_log:
+                eval_a = np.power(10, eval_a)
+            if b_log:
+                eval_b = np.power(10, eval_b)
 
             if var == "x":
                 ex = eval_a
@@ -678,6 +763,10 @@ class CurveFinder(QWidget):
             self.pts_eval_r = eval_pts
 
             formula = ""
+            if a_log:
+                var = "(log<sub>10</sub>{0})".format(var)
+            if b_log:
+                formula += "10^("
             for (i, c) in enumerate(coef):
                 if order - i > 1:
                     formula += "{0:+.2e} {1}<sup>{2}</sup> ".format(c, var, order - i)
@@ -686,7 +775,10 @@ class CurveFinder(QWidget):
                 else:
                     formula += "{0:+.2e}".format(c)
 
-            text = "The formula for this curve is :\n\n{0}".format(formula)
+            if b_log:
+                formula += ")"
+            text = "The formula for this curve is :\n\n" \
+                   "{0}\n\nFor more precision, use the copy function below.".format(formula)
             self.instruct.textbox.setMarkdown(text)
 
             if self.app_state == 6:
@@ -700,10 +792,19 @@ class CurveFinder(QWidget):
 
         x_true, y_true = [np.array(self.pts_final_r)[:, 0], np.array(self.pts_final_r)[:, 1]]
         x_eval, y_eval = [np.array(self.pts_eval_r)[:, 0], np.array(self.pts_eval_r)[:, 1]]
-        ax.plot(x_true, y_true, 'or')
-        ax.plot(x_eval, y_eval, '-b')
-        ax.legend(["True", "Evaluated"])
+        ax.plot(x_true, y_true, 'or', label="Extracted")
+        ax.plot(x_eval, y_eval, '-b', label="Evaluated")
+        ax.legend()
         ax.grid()
+
+        if self.img_op.x_lin.isChecked():
+            ax.set_xscale('linear')
+        else:
+            ax.set_xscale('log')
+        if self.img_op.y_lin.isChecked():
+            ax.set_yscale('linear')
+        else:
+            ax.set_yscale('log')
 
         canvas.draw()  # draw the canvas, cache the renderer
 
@@ -714,38 +815,58 @@ class CurveFinder(QWidget):
     def copy_text(self) -> None:
         """ Method to copy certain data """
         mode = self.instruct.combo.currentText()
+        var = self.var
+        a_log, b_log = self.islog
 
         if mode == "Copy Formula - Matlab":
             formula = ""
+            if a_log:
+                var = "(log10({0}))".format(var)
+            if b_log:
+                formula += "10.^("
             for (i, c) in enumerate(self.coef):
                 if self.order - i > 1:
-                    formula += "+ {0}*{1}.^{2} ".format(c, self.var, self.order - i)
+                    formula += "+ {0}*{1}.^{2} ".format(c, var, self.order - i)
                 elif self.order - i == 1:
-                    formula += "+ {0}*{1} ".format(c, self.var)
+                    formula += "+ {0}*{1} ".format(c, var)
                 else:
                     formula += "+ {0}".format(c)
+            if b_log:
+                formula += ")"
             text = formula
 
         elif mode == "Copy Formula - Python":
             formula = ""
+            if a_log:
+                var = "(np.log10({0}))".format(var)
+            if b_log:
+                formula += "np.power(10, "
             for (i, c) in enumerate(self.coef):
                 if self.order - i > 1:
-                    formula += "+ {0}*{1}**({2}) ".format(c, self.var, self.order - i)
+                    formula += "+ {0}*{1}**({2}) ".format(c, var, self.order - i)
                 elif self.order - i == 1:
-                    formula += "+ {0}*{1} ".format(c, self.var)
+                    formula += "+ {0}*{1} ".format(c, var)
                 else:
                     formula += "+ {0}".format(c)
+            if b_log:
+                formula += ")"
             text = formula
 
         elif mode == "Copy Formula - Markdown":
             formula = ""
+            if a_log:
+                var = "(log<sub>10</sub>{0})".format(var)
+            if b_log:
+                formula += "10^("
             for (i, c) in enumerate(self.coef):
                 if self.order - i > 1:
-                    formula += "{0:+.2e} {1}<sup>{2}</sup> ".format(c, self.var, self.order - i)
+                    formula += "{0:+.2e} {1}<sup>{2}</sup> ".format(c, var, self.order - i)
                 elif self.order - i == 1:
-                    formula += "{0:+.2e} {1} ".format(c, self.var)
+                    formula += "{0:+.2e} {1} ".format(c, var)
                 else:
                     formula += "{0:+.2e}".format(c)
+            if b_log:
+                formula += ")"
             text = formula
 
         elif mode == "Copy Points - Matlab":
@@ -888,6 +1009,9 @@ class CurveFinder(QWidget):
             self.img_op.is_brush = True
         elif state == 1:
             """Pressed Start"""
+            self.instruct.textbox.setMarkdown("1) Click on 2 points for each axis in this order:\n"
+                                              "    **X1 -> X2 -> Y1 -> Y2**\n"
+                                              "2) Enter the coordinates in the box below.")
             self.but_start.setText("Restart")
             self.but_next.setText("Next")
             self.coord_prompt.initValues()
@@ -904,8 +1028,8 @@ class CurveFinder(QWidget):
             """Chose the coord and rotated"""
             self.resize_and_rotate()
             self.update_image()
-            self.instruct.textbox.setMarkdown("Adjust the thresholding so that the curve you want to extract"
-                                              " is clearly visible.\n\n"
+            self.instruct.textbox.setMarkdown("Adjust the thresholding so that the curve you want to extract "
+                                              "is clearly visible and free of close obstacles.\n\n"
                                               "When done, press `Next`")
         elif state == 4:
             """Chose the displaying"""
@@ -915,7 +1039,8 @@ class CurveFinder(QWidget):
             img = np.greater(img, np.zeros(img.shape))*255  # Create the contour mask
             self.mask = np.ones(img.shape)
             cv2.imwrite(CTMK_IMG, img)
-            self.instruct.textbox.setMarkdown("Press and hold over the curve you want to extract. "
+            self.instruct.textbox.setMarkdown("Press and hold over the curve you want to extract. All the "
+                                              '"painted" multi-colored points will be extracted.'
                                               "When you selected all the curve, press `Next` to extract "
                                               "the data points.")
         elif state == 5:
@@ -930,6 +1055,16 @@ class CurveFinder(QWidget):
                 self.pts_final_p.append((x, y))
                 self.pts_final_r.append(np.array([a, b]))
                 cv2.circle(img, (x, y), 2, (0, 0, 255), -1)
+
+            rad = int(self.img.original_image_size[0] / 100)
+            cv2.circle(img, (int(self.x_axis_curve["X1_p"]), int(self.x_axis_curve["Y_p"])),
+                       rad, self.pts_colors[0], -1)
+            cv2.circle(img, (int(self.x_axis_curve["X2_p"]), int(self.x_axis_curve["Y_p"])),
+                       rad, self.pts_colors[1], -1)
+            cv2.circle(img, (int(self.y_axis_curve["X_p"]), int(self.y_axis_curve["Y1_p"])),
+                       rad, self.pts_colors[2], -1)
+            cv2.circle(img, (int(self.y_axis_curve["X_p"]), int(self.y_axis_curve["Y2_p"])),
+                       rad, self.pts_colors[3], -1)
 
             cv2.imwrite(SELE_IMG, img)
             self.img.source = SELE_IMG
