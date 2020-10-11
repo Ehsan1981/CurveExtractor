@@ -3,7 +3,7 @@ import PyInstaller.__main__
 import shutil
 import os
 
-VER = "2.1"
+VER = "2.2"
 
 # Build the executable
 PyInstaller.__main__.run([

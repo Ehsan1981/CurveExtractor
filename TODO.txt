@@ -3,4 +3,3 @@
 - Precision coord
 - Reduce large image
 - Adapt x1/x2/y1/y2 to image size
-- After ploting, propose to see image again

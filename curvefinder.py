@@ -17,7 +17,7 @@ import sys
 import os
 
 
-VER = "2.1"
+VER = "2.2"
 AUTHOR = "Bruno-Pier Busque"
 
 MAX_IMG_W = 1100
