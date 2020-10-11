@@ -2,4 +2,3 @@
 - Logarithmic axis
 - Precision coord
 - Reduce large image
-- Adapt x1/x2/y1/y2 to image size

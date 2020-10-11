@@ -522,8 +522,9 @@ class CurveFinder(QWidget):
 
         for (i, pt) in enumerate(self.coord_prompt.pts):
             if sum(pt) != -2:
-                cv2.circle(img, pt, 5, self.pts_colors[i], -1)
-                cv2.putText(img, self.pts_labels[i], pt, cv2.FONT_HERSHEY_SIMPLEX, 1, self.pts_colors[i], 2)
+                rad = int(self.img.original_image_size[0]/100)
+                cv2.circle(img, pt, rad, self.pts_colors[i], -1)
+                cv2.putText(img, self.pts_labels[i], pt, cv2.FONT_HERSHEY_SIMPLEX, int(rad/3), self.pts_colors[i], rad)
 
         cv2.imwrite(COOR_IMG, img)
         self.img.source = COOR_IMG
