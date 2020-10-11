@@ -1040,7 +1040,7 @@ class CurveFinder(QWidget):
             self.mask = np.ones(img.shape)
             cv2.imwrite(CTMK_IMG, img)
             self.instruct.textbox.setMarkdown("Press and hold over the curve you want to extract. All the "
-                                              '"painted" multi-colored points will be extracted.'
+                                              '"painted" multi-colored points will be extracted.\n\n'
                                               "When you selected all the curve, press `Next` to extract "
                                               "the data points.")
         elif state == 5:
