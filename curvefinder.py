@@ -460,6 +460,9 @@ class CurveFinder(QWidget):
         elif self.app_state == 5:
             self.app_state = 6
 
+        elif self.app_state == 6:
+            self.app_state = 5
+
     def verify_coord(self) -> bool:
         """ Method to verify if the coordinates are entered in the input boxes """
         good_coord = True
@@ -930,6 +933,7 @@ class CurveFinder(QWidget):
             self.but_next.setText("Plot")
         elif state == 6:
             """Ready to plot"""
+            self.but_next.setText("Image")
             self.plot_points()
 
 
