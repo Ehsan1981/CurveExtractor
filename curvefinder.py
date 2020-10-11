@@ -204,6 +204,9 @@ class QInstructBox(QVBoxLayout):
         super().__init__()
 
         # Create the  widgets
+        self.label = QLabel(text="Instructions :")
+        self.label.setFont(QFont("Helvetica", 14, QFont.Bold))
+
         self.combo: QComboBox = QComboBox()
         self.combo.addItems(self.options)
         self.but_copy: QPushButton = QPushButton(text="Copy")
@@ -219,6 +222,7 @@ class QInstructBox(QVBoxLayout):
         hbox.addWidget(self.but_copy)
 
         vbox = QVBoxLayout()
+        vbox.addWidget(self.label)
         vbox.addWidget(self.textbox)
         vbox.addLayout(hbox)
 
@@ -413,15 +417,16 @@ class CurveFinder(QWidget):
         but_lay.addWidget(self.but_next)
         options.addLayout(but_lay)
 
-        hbox = QHBoxLayout()
-        hbox.addWidget(self.img, alignment=Qt.AlignCenter, stretch=4)
-        hbox.addLayout(options, stretch=1)
-
         vbox = QVBoxLayout()
         vbox.addWidget(title_label)
         vbox.addWidget(author_label)
-        vbox.addLayout(hbox)
-        self.setLayout(vbox)
+        vbox.addWidget(self.img, alignment=Qt.AlignCenter, stretch=4)
+
+        hbox = QHBoxLayout()
+        hbox.addLayout(vbox, stretch=4)
+        hbox.addLayout(options, stretch=1)
+
+        self.setLayout(hbox)
 
         # Set application state
         self.app_state = 0
