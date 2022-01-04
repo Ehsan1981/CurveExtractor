@@ -15,7 +15,7 @@ PyInstaller.__main__.run([
 ])
 
 # Create the distribution zip file
-with ZipFile('curvefinder_v{0:s}.zip'.format(VER), 'w', compression=ZIP_DEFLATED, compresslevel=9) as zipfile:
+with ZipFile(f'curvefinder_v{VER}.zip', 'w', compression=ZIP_DEFLATED, compresslevel=9) as zipfile:
     zipfile.write('dist/CurveFinder.exe', 'CurveFinder.exe')
     zipfile.write('resources/placeholder.png', 'data/placeholder.png')
     zipfile.write('resources/icon.png', 'data/icon.png')
