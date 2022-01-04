@@ -7,6 +7,12 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+try:
+    import pyi_splash
+    splash = True
+except ModuleNotFoundError:
+    splash = False
+
 from random import seed, randrange
 from typing import List, Tuple
 from shutil import rmtree
@@ -180,10 +186,10 @@ class QCoord(QVBoxLayout):
 
             # Set the widgets
             self.coord_label: str = coord_label
-            self.label: QLabel = QLabel(text="{0} :".format(coord_label))
+            self.label: QLabel = QLabel(text=f"{coord_label} :")
             self.line: QLineEdit = QLineEdit()
-            self.line.setPlaceholderText("Enter coord. for {0}...".format(coord_label))
-            self.check: QCheckBox = QCheckBox(text="{0} placed".format(coord_label))
+            self.line.setPlaceholderText(f"Enter coord. for {coord_label}...")
+            self.check: QCheckBox = QCheckBox(text=f"{coord_label} placed")
             self.check.setEnabled(False)
 
             # Create the layout
@@ -397,7 +403,7 @@ class CurveFinder(QWidget):
     def __init__(self) -> None:
         """ Initialise the app """
         QWidget.__init__(self)
-        self.setWindowTitle("CurveFinder v{0}".format(VER))
+        self.setWindowTitle(f"CurveFinder v{VER}")
         self.setWindowIcon(QIcon(ICON_PATH))
         self.setFixedWidth(1500)
         self.setFixedHeight(750)
@@ -409,9 +415,9 @@ class CurveFinder(QWidget):
             os.mkdir(TEMP_PATH)
 
         # Create widgets
-        title_label = QLabel(text="CurveFinder v{0}".format(VER))
+        title_label = QLabel(text=f"CurveFinder v{VER}")
         title_label.setFont(QFont("Helvetica", 20, QFont.Bold))
-        author_label = QLabel(text="by {0}".format(AUTHOR))
+        author_label = QLabel(text=f"by {AUTHOR}")
         author_label.setFont(QFont("Calibri", 10))
         self.img: QImage = QImage(PH_IMAGE_PATH)
         self.instruct: QInstructBox = QInstructBox()
@@ -508,7 +514,7 @@ class CurveFinder(QWidget):
             except ValueError:
                 msgBox = QMessageBox()
                 msgBox.setIcon(QMessageBox.Warning)
-                msgBox.setText("Coordinates of {0} must be an number!".format(coord.coord_label))
+                msgBox.setText(f"Coordinates of {coord.coord_label} must be an number!")
                 msgBox.setWindowTitle("Warning")
                 msgBox.setStandardButtons(QMessageBox.Ok)
                 msgBox.exec()
@@ -764,21 +770,22 @@ class CurveFinder(QWidget):
 
             formula = ""
             if a_log:
-                var = "(log<sub>10</sub>{0})".format(var)
+                var = f"(log<sub>10</sub>{var})"
             if b_log:
                 formula += "10^("
             for (i, c) in enumerate(coef):
                 if order - i > 1:
-                    formula += "{0:+.2e} {1}<sup>{2}</sup> ".format(c, var, order - i)
+                    formula += f"{c:+.2e} {var}<sup>{order - i}</sup> "
                 elif order - i == 1:
-                    formula += "{0:+.2e} {1} ".format(c, var)
+                    formula += f"{c:+.2e} {var} "
                 else:
-                    formula += "{0:+.2e}".format(c)
+                    formula += f"{c:+.2e}"
 
             if b_log:
                 formula += ")"
             text = "The formula for this curve is :\n\n" \
-                   "{0}\n\nFor more precision, use the copy function below.".format(formula)
+                   f"{formula}\n\n" \
+                   "For more precision, use the copy function below."
             self.instruct.textbox.setMarkdown(text)
 
             if self.app_state == 6:
@@ -821,16 +828,16 @@ class CurveFinder(QWidget):
         if mode == "Copy Formula - Matlab":
             formula = ""
             if a_log:
-                var = "(log10({0}))".format(var)
+                var = f"(log10({var}))"
             if b_log:
                 formula += "10.^("
             for (i, c) in enumerate(self.coef):
                 if self.order - i > 1:
-                    formula += "+ {0}*{1}.^{2} ".format(c, var, self.order - i)
+                    formula += f"+ {c}*{var}.^{self.order - i} "
                 elif self.order - i == 1:
-                    formula += "+ {0}*{1} ".format(c, var)
+                    formula += f"+ {c}*{var} "
                 else:
-                    formula += "+ {0}".format(c)
+                    formula += f"+ {c}"
             if b_log:
                 formula += ")"
             text = formula
@@ -838,16 +845,16 @@ class CurveFinder(QWidget):
         elif mode == "Copy Formula - Python":
             formula = ""
             if a_log:
-                var = "(np.log10({0}))".format(var)
+                var = f"(np.log10({var}))"
             if b_log:
                 formula += "np.power(10, "
             for (i, c) in enumerate(self.coef):
                 if self.order - i > 1:
-                    formula += "+ {0}*{1}**({2}) ".format(c, var, self.order - i)
+                    formula += f"+ {c}*{var}**({self.order - i}) "
                 elif self.order - i == 1:
-                    formula += "+ {0}*{1} ".format(c, var)
+                    formula += f"+ {c}*{var} "
                 else:
-                    formula += "+ {0}".format(c)
+                    formula += f"+ {c}"
             if b_log:
                 formula += ")"
             text = formula
@@ -855,16 +862,16 @@ class CurveFinder(QWidget):
         elif mode == "Copy Formula - Markdown":
             formula = ""
             if a_log:
-                var = "(log<sub>10</sub>{0})".format(var)
+                var = f"(log<sub>10</sub>{var})"
             if b_log:
                 formula += "10^("
             for (i, c) in enumerate(self.coef):
                 if self.order - i > 1:
-                    formula += "{0:+.2e} {1}<sup>{2}</sup> ".format(c, var, self.order - i)
+                    formula += f"{c:+.2e} {var}<sup>{self.order - i}</sup> "
                 elif self.order - i == 1:
-                    formula += "{0:+.2e} {1} ".format(c, var)
+                    formula += f"{c:+.2e} {var} "
                 else:
-                    formula += "{0:+.2e}".format(c)
+                    formula += f"{c:+.2e}"
             if b_log:
                 formula += ")"
             text = formula
@@ -880,16 +887,16 @@ class CurveFinder(QWidget):
 
             for (i, x) in enumerate(x_r):
                 if i == 0:
-                    text += "{0}".format(x)
+                    text += f"{x}"
                 else:
-                    text += " {0}".format(x)
+                    text += f" {x}"
 
             text += "];\ny = ["
             for (i, y) in enumerate(y_r):
                 if i == 0:
-                    text += "{0}".format(y)
+                    text += f"{y}"
                 else:
-                    text += " {0}".format(y)
+                    text += f" {y}"
 
             text += "];"
 
@@ -904,16 +911,16 @@ class CurveFinder(QWidget):
 
             for (i, x) in enumerate(x_r):
                 if i == 0:
-                    text += "{0}".format(x)
+                    text += f"{x}"
                 else:
-                    text += ", {0}".format(x)
+                    text += f", {x}"
 
             text += "];\ny = ["
             for (i, y) in enumerate(y_r):
                 if i == 0:
-                    text += "{0}".format(y)
+                    text += f"{y}"
                 else:
-                    text += ", {0}".format(y)
+                    text += f", {y}"
 
             text += "];"
 
@@ -928,16 +935,16 @@ class CurveFinder(QWidget):
 
             for (i, x) in enumerate(x_r):
                 if i == 0:
-                    text += "{0}".format(x)
+                    text += f"{x}"
                 else:
-                    text += ", {0}".format(x)
+                    text += f", {x}"
 
             text += "], ["
             for (i, y) in enumerate(y_r):
                 if i == 0:
-                    text += "{0}".format(y)
+                    text += f"{y}"
                 else:
-                    text += ", {0}".format(y)
+                    text += f", {y}"
 
             text += "]])"
 
@@ -945,42 +952,42 @@ class CurveFinder(QWidget):
             text = "x, y\n"
 
             for d in self.pts_final_r:
-                text += "{0}, {1}\n".format(d[0], d[1])
+                text += f"{d[0]}, {d[1]}\n"
 
         elif mode == "Copy Coeff. - Matlab":
             text = "["
             for (i, coef) in enumerate(self.coef):
                 if i == 0:
-                    text += "{0}".format(coef)
+                    text += f"{coef}"
                 else:
-                    text += " {0}".format(coef)
+                    text += f" {coef}"
             text += "]"
 
         elif mode == "Copy Coeff. - Python":
             text = "["
             for (i, coef) in enumerate(self.coef):
                 if i == 0:
-                    text += "{0}".format(coef)
+                    text += f"{coef}"
                 else:
-                    text += ", {0}".format(coef)
+                    text += f", {coef}"
             text += "]"
 
         elif mode == "Copy Coeff. - NumPy":
             text = "np.array(["
             for (i, coef) in enumerate(self.coef):
                 if i == 0:
-                    text += "{0}".format(coef)
+                    text += f"{coef}"
                 else:
-                    text += ", {0}".format(coef)
+                    text += f", {coef}"
             text += "])"
 
         elif mode == "Copy Poly1D - NumPy":
             text = "p = np.poly1d(["
             for (i, coef) in enumerate(self.coef):
                 if i == 0:
-                    text += "{0}".format(coef)
+                    text += f"{coef}"
                 else:
-                    text += ", {0}".format(coef)
+                    text += f", {coef}"
             text += "])"
 
         else:
@@ -1082,5 +1089,7 @@ if __name__ == "__main__":
     seed(123456)
     app = QApplication([])
     window = CurveFinder()
+    if splash:
+        pyi_splash.close()
     window.show()
     sys.exit(app.exec_())
