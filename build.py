@@ -1,9 +1,9 @@
 from zipfile import ZipFile, ZIP_DEFLATED
 import PyInstaller.__main__
+from curvefinder import VER
 import shutil
 import os
 
-VER = "2.2"
 
 # Build the executable
 PyInstaller.__main__.run([
@@ -11,14 +11,15 @@ PyInstaller.__main__.run([
     '--onefile',
     '--noconsole',
     '--icon=resources/icon.ico',
+    '--add-data=resources/icon.ico;data',
+    '--add-data=resources/placeholder.png;data',
+    '--splash=resources/splash.png',
     'curvefinder.py'
 ])
 
 # Create the distribution zip file
 with ZipFile(f'curvefinder_v{VER}.zip', 'w', compression=ZIP_DEFLATED, compresslevel=9) as zipfile:
     zipfile.write('dist/CurveFinder.exe', 'CurveFinder.exe')
-    zipfile.write('resources/placeholder.png', 'data/placeholder.png')
-    zipfile.write('resources/icon.png', 'data/icon.png')
 
 # Remove dist and build folder
 shutil.rmtree('dist/')

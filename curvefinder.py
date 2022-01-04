@@ -29,17 +29,17 @@ AUTHOR = "Bruno-Pier Busque"
 MAX_IMG_W = 1100
 MAX_IMG_H = 625
 
-DATA_PATH = "data/"
-ICON_PATH = DATA_PATH + "icon.png"
-PH_IMAGE_PATH = DATA_PATH + "placeholder.png"
-TEMP_PATH = DATA_PATH + "temp/"
-ORIG_IMG = TEMP_PATH + "original_img.png"
-COOR_IMG = TEMP_PATH + "coordinate_img.png"
-ROTA_IMG = TEMP_PATH + "rotated_img.png"
-CONT_IMG = TEMP_PATH + "contoured_img.png"
-CTMK_IMG = TEMP_PATH + "masked_contoured_img.png"
-SELE_IMG = TEMP_PATH + "selected_img.png"
-PLOT_IMG = TEMP_PATH + "plotted_img.png"
+DATA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/"))
+ICON_PATH = os.path.join(DATA_PATH, "icon.ico")
+PH_IMAGE_PATH = os.path.join(DATA_PATH, "placeholder.png")
+TEMP_PATH = os.path.join(DATA_PATH, "temp/")
+ORIG_IMG = os.path.join(TEMP_PATH, "original_img.png")
+COOR_IMG = os.path.join(TEMP_PATH, "coordinate_img.png")
+ROTA_IMG = os.path.join(TEMP_PATH, "rotated_img.png")
+CONT_IMG = os.path.join(TEMP_PATH, "contoured_img.png")
+CTMK_IMG = os.path.join(TEMP_PATH, "masked_contoured_img.png")
+SELE_IMG = os.path.join(TEMP_PATH, "selected_img.png")
+PLOT_IMG = os.path.join(TEMP_PATH, "plotted_img.png")
 
 
 class QImage(QLabel):
