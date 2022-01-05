@@ -1,3 +1,4 @@
-- Remove temp path writing/reading?
+- When erasing the mask, return the original image
 - Precision coord
 - Reduce large image
+- Change the placeholder image for a custom graph
