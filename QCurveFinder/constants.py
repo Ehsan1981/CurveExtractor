@@ -51,15 +51,17 @@ SELE_IMG = os.path.join(TEMP_PATH, "selected_img.png")
 PLOT_IMG = os.path.join(TEMP_PATH, "plotted_img.png")
 
 # TEXTS
-INITIAL_TEXT = "Choose a picture of a graph and press `Start`"
-STARTED_TEXT = "1) Click on 2 points for each axis in this order:\n" \
-               "    **X1 -> X2 -> Y1 -> Y2**\n" \
-               "2) Enter the coordinates in the box below."
+INITIAL_TEXT = "Select an image by pressing the `Select an image` button at the bottom and press `Start`."
+STARTED_TEXT = "Click on 2 points for each axis in this order:\n\n" \
+               "\tX1 -> X2 -> Y1 -> Y2\n" \
+               "Enter their coordinates in the boxes below."
 FILTER_CHOICE_TEXT = "Adjust the thresholding so that the curve you want to extract " \
-                     "is clearly visible and free of close obstacles.\n\n" \
+                     "is clearly visible and free of nearby obstacles.\n\n" \
                      "When done, press `Next`"
-EDGE_SELECTION_TEXT = "Press and hold over the curve you want to extract. All the " \
-                      '"painted" multi-colored points will be extracted.\n\n' \
+EDGE_SELECTION_TEXT = "Press and hold the left mouse button over the curve you want to extract. All the " \
+                      '"painted" multi-colored points will be extracted.\n\n'\
+                      "If you wish to cancel some point that are painted, simply press and hold the right " \
+                      "mouse button over the curve. \n\n"\
                       "When you selected all the curve, press `Next` to extract " \
                       "the data points."
 EQUATION_TEXT = ""

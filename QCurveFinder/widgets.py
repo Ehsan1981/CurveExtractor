@@ -11,7 +11,7 @@ from .constants import *
 class QImage(QLabel):
     """ The class for the big image box """
 
-    signal: pyqtSignal = pyqtSignal(int, int)
+    signal: pyqtSignal = pyqtSignal(int, int, Qt.MouseButton)
 
     def __init__(self, image_path: str) -> None:
         """ Initialise the image of the graph """
@@ -19,6 +19,7 @@ class QImage(QLabel):
 
         self.holdEnabled: bool = False
         self.holding: bool = False
+        self.button: Qt.MouseButton = Qt.MouseButton.NoButton
 
         self.setStyleSheet("border: 3px solid gray;")  # Add borders
         self.source: str = image_path  # Set the image
@@ -41,18 +42,20 @@ class QImage(QLabel):
     def mousePressEvent(self, ev: QMouseEvent) -> None:
         """ Event when mouse is pressed on the image """
         self.holding = True
+        self.button = ev.button()
         x, y = [self.original_image_size[i]*(ev.x(), ev.y())[i]/self.new_image_size[i] for i in (0, 1)]
-        self.signal.emit(x, y)
+        self.signal.emit(x, y, self.button)
 
     def mouseMoveEvent(self, ev: QMouseEvent) -> None:
         """ Event when mouse is moved on the image """
         if self.holding and self.holdEnabled:
             x, y = [self.original_image_size[i] * (ev.x(), ev.y())[i] / self.new_image_size[i] for i in (0, 1)]
-            self.signal.emit(x, y)
+            self.signal.emit(x, y, self.button)
 
     def mouseReleaseEvent(self, ev: QMouseEvent) -> None:
         """ Event when mouse is released on the image """
         self.holding = False
+        self.button = Qt.MouseButton.NoButton
 
 
 class QCoord(QVBoxLayout):

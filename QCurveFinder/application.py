@@ -152,7 +152,7 @@ class CurveFinder(QWidget):
 
         return good_coord
 
-    def add_position(self, x: int, y: int) -> None:
+    def add_position(self, x: int, y: int, button: Qt.MouseButton) -> None:
         """ Method used when clicking with the mouse on the image """
         if self.app_state == AppState.STARTED:
             if not self.coord_prompt.x1_done:
@@ -170,7 +170,10 @@ class CurveFinder(QWidget):
                 self.app_state = AppState.COORD_ALL_SELECTED
 
         elif self.app_state == AppState.EDGE_SELECTION:
-            self.draw_mask(x, y)
+            if button == Qt.MouseButton.LeftButton:
+                self.draw_mask(x, y, 255)
+            elif button == Qt.MouseButton.RightButton:
+                self.draw_mask(x, y, 1)
 
     def draw_points(self, x1: tuple = None, x2: tuple = None, y1: tuple = None, y2: tuple = None) -> None:
         """ Method to draw the point on th image """
@@ -194,15 +197,15 @@ class CurveFinder(QWidget):
         cv2.imwrite(COOR_IMG, img)
         self.img.source = COOR_IMG
 
-    def draw_mask(self, x: int, y: int) -> None:
+    def draw_mask(self, x: int, y: int, color: int) -> None:
         """ Method to draw the brush on the image """
         alpha = 0.3
         radius = self.img_op.spinbox.value()
         img = cv2.imread(CONT_IMG)
         new_img = img.copy()
-        cv2.circle(new_img, (x, y), radius, (0, 0, 255), -1)
+        cv2.circle(new_img, (x, y), radius, (0, 0, color), -1)
         cv2.addWeighted(new_img, alpha, img, 1 - alpha, 0, img)
-        cv2.circle(self.mask, (x, y), radius, 255, -1)
+        cv2.circle(self.mask, (x, y), radius, color, -1)
         cv2.imwrite(CONT_IMG, img)
         self.img.source = CONT_IMG
 
