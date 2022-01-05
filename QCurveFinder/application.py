@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QHBoxLayout, QVBoxLayout, QPushButton,\
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, \
     QFileDialog, QMessageBox
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
@@ -7,6 +7,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 from .widgets import QImage, QInstructBox, QImageOptions, QCoord
+from .tools import get_copy_text
 from .constants import *
 
 from random import randrange
@@ -73,9 +74,9 @@ class CurveFinder(QWidget):
         self.img_op.combo.currentTextChanged.connect(self.update_image)
         self.img_op.slider1.sliderMoved.connect(self.update_image)
         self.img_op.slider2.sliderMoved.connect(self.update_image)
-        self.img_op.spinbox.valueChanged.connect(self.set_formula)
-        self.img_op.y_from_x.toggled.connect(self.set_formula)
-        self.img_op.x_from_y.toggled.connect(self.set_formula)
+        self.img_op.spinbox.valueChanged.connect(self.set_equation)
+        self.img_op.y_from_x.toggled.connect(self.set_equation)
+        self.img_op.x_from_y.toggled.connect(self.set_equation)
         self.img_op.x_lin.toggled.connect(self.update_lin_log)
         self.img_op.x_log.toggled.connect(self.update_lin_log)
         self.img_op.y_lin.toggled.connect(self.update_lin_log)
@@ -275,7 +276,7 @@ class CurveFinder(QWidget):
             Y1_p = self.y_axis_curve["Y1_p"]
             Y2_p = self.y_axis_curve["Y2_p"]
             self.Ypr = (Y2 - Y1)/(Y2_p - Y1_p)
-            self.set_formula()
+            self.set_equation()
 
     def update_image(self) -> None:
         """ Method to update the image with the contour chosen in the combobox """
@@ -341,8 +342,8 @@ class CurveFinder(QWidget):
             y = (mt.log10(b) - mt.log10(self.coord[2]))/self.Ypr + self.y_axis_curve["Y1_p"]
         return np.array([x, y])
 
-    def set_formula(self, do: bool = True) -> None:
-        """ Method to update the formula displayed in the instruction box """
+    def set_equation(self, do: bool = True) -> None:
+        """ Method to update the equation displayed in the instruction box """
         if do and self.app_state >= AppState.EQUATION_IMAGE:
             if self.img_op.x_lin.isChecked():
                 x = np.array(self.pts_final_r)[:, 0]
@@ -396,23 +397,11 @@ class CurveFinder(QWidget):
 
             self.pts_eval_r = eval_pts
 
-            formula = ""
-            if a_log:
-                var = f"(log<sub>10</sub>{var})"
-            if b_log:
-                formula += "10^("
-            for (i, c) in enumerate(coef):
-                if order - i > 1:
-                    formula += f"{c:+.2e} {var}<sup>{order - i}</sup> "
-                elif order - i == 1:
-                    formula += f"{c:+.2e} {var} "
-                else:
-                    formula += f"{c:+.2e}"
+            equation = get_copy_text(CopyOptions.EQUATION_MARKDOWN, self.var, self.islog, self.coef,
+                                     self.order, self.pts_final_r)
 
-            if b_log:
-                formula += ")"
-            text = "The formula for this curve is :\n\n" \
-                   f"{formula}\n\n" \
+            text = "The equation for this curve is :\n\n" \
+                   f"{equation}\n\n" \
                    "For more precision, use the copy function below."
             self.instruct.textbox.setMarkdown(text)
 
@@ -421,7 +410,7 @@ class CurveFinder(QWidget):
 
     def plot_points(self) -> None:
         """ Method to generate the plot image and display it """
-        fig = Figure(figsize=(11.0, 6.25), dpi=100)
+        fig = Figure(figsize=(MAX_IMG_W/100, MAX_IMG_H/100), dpi=100)
         canvas = FigureCanvas(fig)
         ax = fig.gca()
 
@@ -449,179 +438,11 @@ class CurveFinder(QWidget):
 
     def copy_text(self) -> None:
         """ Method to copy certain data """
-        mode = self.instruct.combo.currentText()
-        var = self.var
-        a_log, b_log = self.islog
+        text = get_copy_text(self.instruct.combo.currentIndex(), self.var, self.islog, self.coef,
+                             self.order, self.pts_final_r)
 
-        if mode == "Copy Formula - Matlab":
-            formula = ""
-            if a_log:
-                var = f"(log10({var}))"
-            if b_log:
-                formula += "10.^("
-            for (i, c) in enumerate(self.coef):
-                if self.order - i > 1:
-                    formula += f"+ {c}*{var}.^{self.order - i} "
-                elif self.order - i == 1:
-                    formula += f"+ {c}*{var} "
-                else:
-                    formula += f"+ {c}"
-            if b_log:
-                formula += ")"
-            text = formula
-
-        elif mode == "Copy Formula - Python":
-            formula = ""
-            if a_log:
-                var = f"(np.log10({var}))"
-            if b_log:
-                formula += "np.power(10, "
-            for (i, c) in enumerate(self.coef):
-                if self.order - i > 1:
-                    formula += f"+ {c}*{var}**({self.order - i}) "
-                elif self.order - i == 1:
-                    formula += f"+ {c}*{var} "
-                else:
-                    formula += f"+ {c}"
-            if b_log:
-                formula += ")"
-            text = formula
-
-        elif mode == "Copy Formula - Markdown":
-            formula = ""
-            if a_log:
-                var = f"(log<sub>10</sub>{var})"
-            if b_log:
-                formula += "10^("
-            for (i, c) in enumerate(self.coef):
-                if self.order - i > 1:
-                    formula += f"{c:+.2e} {var}<sup>{self.order - i}</sup> "
-                elif self.order - i == 1:
-                    formula += f"{c:+.2e} {var} "
-                else:
-                    formula += f"{c:+.2e}"
-            if b_log:
-                formula += ")"
-            text = formula
-
-        elif mode == "Copy Points - Matlab":
-            text = "x = ["
-            x_r = []
-            y_r = []
-
-            for d in self.pts_final_r:
-                x_r.append(d[0])
-                y_r.append(d[1])
-
-            for (i, x) in enumerate(x_r):
-                if i == 0:
-                    text += f"{x}"
-                else:
-                    text += f" {x}"
-
-            text += "];\ny = ["
-            for (i, y) in enumerate(y_r):
-                if i == 0:
-                    text += f"{y}"
-                else:
-                    text += f" {y}"
-
-            text += "];"
-
-        elif mode == "Copy Points - Python":
-            text = "x = ["
-            x_r = []
-            y_r = []
-
-            for d in self.pts_final_r:
-                x_r.append(d[0])
-                y_r.append(d[1])
-
-            for (i, x) in enumerate(x_r):
-                if i == 0:
-                    text += f"{x}"
-                else:
-                    text += f", {x}"
-
-            text += "];\ny = ["
-            for (i, y) in enumerate(y_r):
-                if i == 0:
-                    text += f"{y}"
-                else:
-                    text += f", {y}"
-
-            text += "];"
-
-        elif mode == "Copy Points - NumPy":
-            text = "pts = np.array([["
-            x_r = []
-            y_r = []
-
-            for d in self.pts_final_r:
-                x_r.append(d[0])
-                y_r.append(d[1])
-
-            for (i, x) in enumerate(x_r):
-                if i == 0:
-                    text += f"{x}"
-                else:
-                    text += f", {x}"
-
-            text += "], ["
-            for (i, y) in enumerate(y_r):
-                if i == 0:
-                    text += f"{y}"
-                else:
-                    text += f", {y}"
-
-            text += "]])"
-
-        elif mode == "Copy Points - CSV":
-            text = "x, y\n"
-
-            for d in self.pts_final_r:
-                text += f"{d[0]}, {d[1]}\n"
-
-        elif mode == "Copy Coeff. - Matlab":
-            text = "["
-            for (i, coef) in enumerate(self.coef):
-                if i == 0:
-                    text += f"{coef}"
-                else:
-                    text += f" {coef}"
-            text += "]"
-
-        elif mode == "Copy Coeff. - Python":
-            text = "["
-            for (i, coef) in enumerate(self.coef):
-                if i == 0:
-                    text += f"{coef}"
-                else:
-                    text += f", {coef}"
-            text += "]"
-
-        elif mode == "Copy Coeff. - NumPy":
-            text = "np.array(["
-            for (i, coef) in enumerate(self.coef):
-                if i == 0:
-                    text += f"{coef}"
-                else:
-                    text += f", {coef}"
-            text += "])"
-
-        elif mode == "Copy Poly1D - NumPy":
-            text = "p = np.poly1d(["
-            for (i, coef) in enumerate(self.coef):
-                if i == 0:
-                    text += f"{coef}"
-                else:
-                    text += f", {coef}"
-            text += "])"
-
-        else:
-            return
-
-        QApplication.clipboard().setText(text)
+        if text is not None:
+            QApplication.clipboard().setText(text)
 
     @property
     def app_state(self) -> AppState:
@@ -643,6 +464,7 @@ class CurveFinder(QWidget):
             self.instruct.setEnabled(False)
             self.img_op.setEnabled(True)
             self.img_op.is_brush = True
+
         elif state == AppState.STARTED:
             """Pressed Start"""
             self.instruct.textbox.setMarkdown(STARTED_TEXT)
@@ -657,13 +479,16 @@ class CurveFinder(QWidget):
             self.pts_final_r = []
             self.pts_eval_r = []
             self.img.source = ORIG_IMG
+
         elif state == AppState.COORD_ALL_SELECTED:
             """Coordinate all selected"""
+
         elif state == AppState.FILTER_CHOICE:
             """Chose the coord and rotated"""
             self.instruct.textbox.setMarkdown(FILTER_CHOICE_TEXT)
             self.resize_and_rotate()
             self.update_image()
+
         elif state == AppState.EDGE_SELECTION:
             """Chose the displaying"""
             self.instruct.textbox.setMarkdown(EDGE_SELECTION_TEXT)
@@ -673,9 +498,9 @@ class CurveFinder(QWidget):
             img = np.greater(img, np.zeros(img.shape))*255  # Create the contour mask
             self.mask = np.ones(img.shape)
             cv2.imwrite(CTMK_IMG, img)
+
         elif state == AppState.EQUATION_IMAGE:
             """Selected the edges to keep"""
-            self.set_formula()
             img = cv2.cvtColor(cv2.imread(CTMK_IMG), cv2.COLOR_BGR2GRAY)
             img = np.equal(img, self.mask)
             pts_y, pts_x = np.where(img)
@@ -701,7 +526,9 @@ class CurveFinder(QWidget):
             self.img.source = SELE_IMG
             self.instruct.setEnabled(True)
             self.img_op.is_brush = False
+            self.set_equation()
             self.but_next.setText("Plot")
+
         elif state == AppState.EQUATION_PLOT:
             """Ready to plot"""
             self.but_next.setText("Image")

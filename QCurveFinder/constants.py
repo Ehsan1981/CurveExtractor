@@ -2,6 +2,7 @@ from enum import IntEnum
 import os
 
 
+# ENUMS
 class AppState(IntEnum):
     INITIAL = 0
     STARTED = 1
@@ -12,6 +13,21 @@ class AppState(IntEnum):
     EQUATION_PLOT = 6
 
 
+class CopyOptions(IntEnum):
+    EQUATION_MATLAB = 0
+    EQUATION_PYTHON = 1
+    EQUATION_MARKDOWN = 2
+    POINTS_MATLAB = 3
+    POINTS_PYTHON = 4
+    POINTS_NUMPY = 5
+    POINTS_CSV = 6
+    COEFFS_MATLAB = 7
+    COEFFS_PYTHON = 8
+    COEFFS_NUMPY = 9
+    POLY1D = 10
+
+
+# APPLICATION DATA
 VER = "2.3"
 AUTHOR = "Bruno-Pier Busque"
 
@@ -21,6 +37,7 @@ APP_H = 750
 MAX_IMG_W = 1200
 MAX_IMG_H = 730
 
+# PATHS
 DATA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data/"))
 ICON_PATH = os.path.join(DATA_PATH, "icon.ico")
 PH_IMAGE_PATH = os.path.join(DATA_PATH, "placeholder.png")
@@ -33,6 +50,7 @@ CTMK_IMG = os.path.join(TEMP_PATH, "masked_contoured_img.png")
 SELE_IMG = os.path.join(TEMP_PATH, "selected_img.png")
 PLOT_IMG = os.path.join(TEMP_PATH, "plotted_img.png")
 
+# TEXTS
 INITIAL_TEXT = "Choose a picture of a graph and press `Start`"
 STARTED_TEXT = "1) Click on 2 points for each axis in this order:\n" \
                "    **X1 -> X2 -> Y1 -> Y2**\n" \
@@ -45,3 +63,8 @@ EDGE_SELECTION_TEXT = "Press and hold over the curve you want to extract. All th
                       "When you selected all the curve, press `Next` to extract " \
                       "the data points."
 EQUATION_TEXT = ""
+
+# COPY OPTIONS
+COPY_OPTIONS_TEXT = ("Copy Formula - Matlab", "Copy Formula - Python", "Copy Formula - Markdown",
+                     "Copy Points - Matlab", "Copy Points - Python", "Copy Points - NumPy", "Copy Points - CSV",
+                     "Copy Coeff. - Matlab", "Copy Coeff. - Python", "Copy Coeff. - NumPy", "Copy Poly1D - NumPy")

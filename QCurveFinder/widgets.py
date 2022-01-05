@@ -165,10 +165,6 @@ class QCoord(QVBoxLayout):
 class QInstructBox(QVBoxLayout):
     """ Class for the instruction box widget """
 
-    options: Tuple[str] = ("Copy Formula - Matlab", "Copy Formula - Python", "Copy Formula - Markdown",
-                           "Copy Points - Matlab", "Copy Points - Python", "Copy Points - NumPy", "Copy Points - CSV",
-                           "Copy Coeff. - Matlab", "Copy Coeff. - Python", "Copy Coeff. - NumPy", "Copy Poly1D - NumPy")
-
     def __init__(self) -> None:
         """ Initialise the Instruction box """
         super().__init__()
@@ -178,7 +174,7 @@ class QInstructBox(QVBoxLayout):
         self.label.setFont(QFont("Helvetica", 14, QFont.Bold))
 
         self.combo: QComboBox = QComboBox()
-        self.combo.addItems(self.options)
+        self.combo.addItems(COPY_OPTIONS_TEXT)
         self.but_copy: QPushButton = QPushButton(text="Copy")
 
         self.textbox: QTextBrowser = QTextBrowser()
