@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QHBoxLayout, QVBoxLayout, QPushButton,\
     QFileDialog, QMessageBox
-from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -99,7 +99,7 @@ class CurveFinder(QWidget):
         self.setLayout(hbox)
 
         # Set application state
-        self.app_state = 0
+        self.app_state = AppState.INITIAL
 
         self.show()
 
@@ -112,29 +112,25 @@ class CurveFinder(QWidget):
         self.img_src = str(QFileDialog().getOpenFileName(filter="Images (*.png *.bmp *.jpg)")[0])
         if self.img_src != "":
             self.img.source = self.img_src
-            self.app_state = 0  # Return to initial state
+            self.app_state = AppState.INITIAL  # Return to initial state
 
     def start(self) -> None:
         """ Method for the Start button """
         cv2.imwrite(ORIG_IMG, cv2.imread(self.img_src))
-        self.app_state = 1
+        self.app_state = AppState.STARTED
 
     def next(self) -> None:
         """ Method for the next button. It changes the state of the app """
-        if self.app_state == 2 and self.verify_coord():
-            self.app_state = 3
-
-        elif self.app_state == 3:
-            self.app_state = 4
-
-        elif self.app_state == 4:
-            self.app_state = 5
-
-        elif self.app_state == 5:
-            self.app_state = 6
-
-        elif self.app_state == 6:
-            self.app_state = 5
+        if self.app_state == AppState.COORD_ALL_SELECTED and self.verify_coord():
+            self.app_state = AppState.FILTER_CHOICE
+        elif self.app_state == AppState.FILTER_CHOICE:
+            self.app_state = AppState.EDGE_SELECTION
+        elif self.app_state == AppState.EDGE_SELECTION:
+            self.app_state = AppState.EQUATION_IMAGE
+        elif self.app_state == AppState.EQUATION_IMAGE:
+            self.app_state = AppState.EQUATION_PLOT
+        elif self.app_state == AppState.EQUATION_PLOT:
+            self.app_state = AppState.EQUATION_IMAGE
 
     def verify_coord(self) -> bool:
         """ Method to verify if the coordinates are entered in the input boxes """
@@ -157,7 +153,7 @@ class CurveFinder(QWidget):
 
     def add_position(self, x: int, y: int) -> None:
         """ Method used when clicking with the mouse on the image """
-        if self.app_state == 1:
+        if self.app_state == AppState.STARTED:
             if not self.coord_prompt.x1_done:
                 self.draw_points(x1=(x, y))
                 self.coord_prompt.x1_done = True
@@ -170,9 +166,9 @@ class CurveFinder(QWidget):
             elif not self.coord_prompt.y2_done:
                 self.draw_points(y2=(x, y))
                 self.coord_prompt.y2_done = True
-                self.app_state = 2
+                self.app_state = AppState.COORD_ALL_SELECTED
 
-        elif self.app_state == 4:
+        elif self.app_state == AppState.EDGE_SELECTION:
             self.draw_mask(x, y)
 
     def draw_points(self, x1: tuple = None, x2: tuple = None, y1: tuple = None, y2: tuple = None) -> None:
@@ -257,7 +253,7 @@ class CurveFinder(QWidget):
         Method to update the axis to a log or a linear and
         make the relation between graph and pixel space.
         """
-        if self.app_state >= 3:
+        if self.app_state >= AppState.FILTER_CHOICE:
             if self.img_op.x_lin.isChecked():
                 X1 = self.coord[0]
                 X2 = self.coord[1]
@@ -283,7 +279,7 @@ class CurveFinder(QWidget):
 
     def update_image(self) -> None:
         """ Method to update the image with the contour chosen in the combobox """
-        if self.app_state == 3:
+        if self.app_state == AppState.FILTER_CHOICE:
             img = cv2.cvtColor(cv2.imread(ROTA_IMG), cv2.COLOR_BGR2GRAY)
             tr1, tr2 = [self.img_op.slider1.value(), self.img_op.slider2.value()]
 
@@ -347,7 +343,7 @@ class CurveFinder(QWidget):
 
     def set_formula(self, do: bool = True) -> None:
         """ Method to update the formula displayed in the instruction box """
-        if do and self.app_state >= 5:
+        if do and self.app_state >= AppState.EQUATION_IMAGE:
             if self.img_op.x_lin.isChecked():
                 x = np.array(self.pts_final_r)[:, 0]
                 x_log = False
@@ -420,7 +416,7 @@ class CurveFinder(QWidget):
                    "For more precision, use the copy function below."
             self.instruct.textbox.setMarkdown(text)
 
-            if self.app_state == 6:
+            if self.app_state == AppState.EQUATION_PLOT:
                 self.plot_points()
 
     def plot_points(self) -> None:
@@ -628,16 +624,16 @@ class CurveFinder(QWidget):
         QApplication.clipboard().setText(text)
 
     @property
-    def app_state(self) -> int:
+    def app_state(self) -> AppState:
         """ Method to get the current app state """
         return self._app_state
 
     @app_state.setter
-    def app_state(self, state: int) -> None:
+    def app_state(self, state: AppState) -> None:
         """ Method where the sequence of the app is handled """
         self._app_state = state
 
-        if state == 0:
+        if state == AppState.INITIAL:
             """Starting state"""
             self.instruct.textbox.setMarkdown(INITIAL_TEXT)
             self.but_start.setText("Start")
@@ -647,7 +643,7 @@ class CurveFinder(QWidget):
             self.instruct.setEnabled(False)
             self.img_op.setEnabled(True)
             self.img_op.is_brush = True
-        elif state == 1:
+        elif state == AppState.STARTED:
             """Pressed Start"""
             self.instruct.textbox.setMarkdown(STARTED_TEXT)
             self.but_start.setText("Restart")
@@ -661,14 +657,14 @@ class CurveFinder(QWidget):
             self.pts_final_r = []
             self.pts_eval_r = []
             self.img.source = ORIG_IMG
-        elif state == 2:
+        elif state == AppState.COORD_ALL_SELECTED:
             """Coordinate all selected"""
-        elif state == 3:
+        elif state == AppState.FILTER_CHOICE:
             """Chose the coord and rotated"""
             self.instruct.textbox.setMarkdown(FILTER_CHOICE_TEXT)
             self.resize_and_rotate()
             self.update_image()
-        elif state == 4:
+        elif state == AppState.EDGE_SELECTION:
             """Chose the displaying"""
             self.instruct.textbox.setMarkdown(EDGE_SELECTION_TEXT)
             self.img_op.setEnabled(False)
@@ -677,7 +673,7 @@ class CurveFinder(QWidget):
             img = np.greater(img, np.zeros(img.shape))*255  # Create the contour mask
             self.mask = np.ones(img.shape)
             cv2.imwrite(CTMK_IMG, img)
-        elif state == 5:
+        elif state == AppState.EQUATION_IMAGE:
             """Selected the edges to keep"""
             self.set_formula()
             img = cv2.cvtColor(cv2.imread(CTMK_IMG), cv2.COLOR_BGR2GRAY)
@@ -706,7 +702,7 @@ class CurveFinder(QWidget):
             self.instruct.setEnabled(True)
             self.img_op.is_brush = False
             self.but_next.setText("Plot")
-        elif state == 6:
+        elif state == AppState.EQUATION_PLOT:
             """Ready to plot"""
             self.but_next.setText("Image")
             self.plot_points()

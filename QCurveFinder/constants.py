@@ -9,7 +9,7 @@ class AppState(IntEnum):
     FILTER_CHOICE = 3
     EDGE_SELECTION = 4
     EQUATION_IMAGE = 5
-    EQUATION_PLOT = 5
+    EQUATION_PLOT = 6
 
 
 VER = "2.3"
