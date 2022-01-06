@@ -28,7 +28,7 @@ class CopyOptions(IntEnum):
 
 
 # APPLICATION DATA
-VER = "2.3"
+VER = "2.4"
 AUTHOR = "Bruno-Pier Busque"
 
 APP_W = 1500
