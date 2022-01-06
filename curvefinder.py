@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QApplication
 from QCurveFinder.application import CurveFinder
+from PyQt5.QtWidgets import QApplication
 
 try:
     import pyi_splash
