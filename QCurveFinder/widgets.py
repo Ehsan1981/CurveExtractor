@@ -58,6 +58,7 @@ class QImage(QLabel):
         self.img_path = src  # Save the path
         new_img = QPixmap(src)  # Load the image
         self._source = new_img.scaled(MAX_IMG_W, MAX_IMG_H, Qt.KeepAspectRatio)  # Save the rescaled source image
+        self.image_size = (self._source.height(), self._source.width())
         self._source.save(src)  # Save the resized image
         self.setPixmap(self._source)  # Display the image
         self.base_pixmap = self._source.copy()

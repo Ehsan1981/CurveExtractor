@@ -191,7 +191,7 @@ class CurveFinder(QWidget):
 
         for (i, pt) in enumerate(self.coord_prompt.pts):
             if sum(pt) != -2:
-                rad = int(self.img.original_image_size[0]/100)
+                rad = int(self.img.image_size[0]/100)
                 cv2.circle(img, pt, rad, self.pts_colors[i], -1)
                 cv2.putText(img, self.pts_labels[i], pt, cv2.FONT_HERSHEY_SIMPLEX, int(rad/3), self.pts_colors[i], rad)
 
@@ -519,7 +519,7 @@ class CurveFinder(QWidget):
                 self.pts_final_r.append(np.array([a, b]))
                 cv2.circle(img, (x, y), 2, (0, 0, 255), -1)
 
-            rad = int(self.img.original_image_size[0] / 100)
+            rad = int(self.img.image_size[0] / 100)
             cv2.circle(img, (int(self.x_axis_curve["X1_p"]), int(self.x_axis_curve["Y_p"])),
                        rad, self.pts_colors[0], -1)
             cv2.circle(img, (int(self.x_axis_curve["X2_p"]), int(self.x_axis_curve["Y_p"])),
