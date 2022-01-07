@@ -19,7 +19,7 @@ import cv2
 import os
 
 
-class CurveFinder(QWidget):
+class QCurveFinder(QWidget):
     """ The application in itself """
 
     pts_colors: Tuple[Tuple[int]] = ((204, 0, 0), (0, 153, 0), (0, 0, 153), (204, 204, 0))

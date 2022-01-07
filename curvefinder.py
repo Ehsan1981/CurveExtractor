@@ -1,4 +1,4 @@
-from QCurveFinder.application import CurveFinder
+from QCurveFinder.application import QCurveFinder
 from PyQt5.QtWidgets import QApplication
 
 try:
@@ -13,7 +13,7 @@ import sys
 
 seed(123456)
 app = QApplication([])
-window = CurveFinder()
+window = QCurveFinder()
 if splash:
     pyi_splash.close()
 window.show()
