@@ -75,6 +75,7 @@ class CurveFinder(QWidget):
         self.img_op.slider1.sliderMoved.connect(self.update_image)
         self.img_op.slider2.sliderMoved.connect(self.update_image)
         self.img_op.spinbox.valueChanged.connect(self.set_equation)
+        self.img_op.spinbox.valueChanged.connect(self.img.update_brush_radius)
         self.img_op.y_from_x.toggled.connect(self.set_equation)
         self.img_op.x_from_y.toggled.connect(self.set_equation)
         self.img_op.x_lin.toggled.connect(self.update_lin_log)
@@ -199,15 +200,8 @@ class CurveFinder(QWidget):
 
     def draw_mask(self, x: int, y: int, color: int) -> None:
         """ Method to draw the brush on the image """
-        alpha = 0.3
         radius = self.img_op.spinbox.value()
-        img = cv2.imread(CONT_IMG)
-        new_img = img.copy()
-        cv2.circle(new_img, (x, y), radius, (0, 0, color), -1)
-        cv2.addWeighted(new_img, alpha, img, 1 - alpha, 0, img)
         cv2.circle(self.mask, (x, y), radius, color, -1)
-        cv2.imwrite(CONT_IMG, img)
-        self.img.source = CONT_IMG
 
     def resize_and_rotate(self) -> None:
         """
@@ -469,7 +463,7 @@ class CurveFinder(QWidget):
             self.img_op.is_brush = True
             self.img.clickEnabled = False
             self.img.zoomEnabled = False
-            self.img.holdEnabled = False
+            self.img.maskEnabled = False
 
         elif state == AppState.STARTED:
             """Pressed Start"""
@@ -504,7 +498,7 @@ class CurveFinder(QWidget):
             self.instruct.textbox.setMarkdown(EDGE_SELECTION_TEXT)
             self.img_op.setEnabled(False)
             self.img.clickEnabled = True
-            self.img.holdEnabled = True
+            self.img.maskEnabled = True
             img = cv2.cvtColor(cv2.imread(CONT_IMG), cv2.COLOR_BGR2GRAY)
             img = np.greater(img, np.zeros(img.shape))*255  # Create the contour mask
             self.mask = np.ones(img.shape)
@@ -513,7 +507,7 @@ class CurveFinder(QWidget):
         elif state == AppState.EQUATION_IMAGE:
             """Selected the edges to keep"""
             self.img.clickEnabled = False
-            self.img.holdEnabled = False
+            self.img.maskEnabled = False
             img = cv2.cvtColor(cv2.imread(CTMK_IMG), cv2.COLOR_BGR2GRAY)
             img = np.equal(img, self.mask)
             pts_y, pts_x = np.where(img)

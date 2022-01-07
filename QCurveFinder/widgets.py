@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QCheckBox, QLineEdit, QTextBrowser,\
     QSlider, QComboBox, QRadioButton, QSpinBox, QButtonGroup
-from PyQt5.QtGui import QPixmap, QMouseEvent, QFont, QPainter, QPainterPath, QPen
+from PyQt5.QtGui import QPixmap, QMouseEvent, QFont, QPainter, QPainterPath, QPen, QColor
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QRect, QSize, QRectF, QSizeF
 
 from typing import List, Tuple
@@ -14,6 +14,7 @@ class QImage(QLabel):
     signal: pyqtSignal = pyqtSignal(int, int, Qt.MouseButton)
     zoom = 2
     radius = 60
+    border: int = 3
 
     def __init__(self, image_path: str) -> None:
         """ Initialise the image of the graph """
@@ -21,13 +22,29 @@ class QImage(QLabel):
 
         self.clickEnabled: bool = False
         self.zoomEnabled: bool = False
-        self.holdEnabled: bool = False
+        self.maskEnabled = False
         self.holding: bool = False
         self.button: Qt.MouseButton = Qt.MouseButton.NoButton
         self.setMouseTracking(True)
 
-        self.setStyleSheet("border: 3px solid gray;")  # Add borders
+        self.setStyleSheet(f"border: {self.border}px solid gray;")  # Add borders
         self.source: str = image_path  # Set the image
+
+        self.base_pixmap: QPixmap = None
+        self.contour_pixmap: QPixmap = None
+
+        self.brush_radius: int = 5
+
+    @property
+    def maskEnabled(self) -> bool:
+        """ Return if maskEnable is true or not """
+        return self._maskEnabled
+
+    @maskEnabled.setter
+    def maskEnabled(self, a0: bool) -> None:
+        """ Set the maskEnable attribute """
+        self._maskEnabled = a0
+        self.contour_pixmap = self.source.copy()
 
     @property
     def source(self) -> QPixmap:
@@ -39,30 +56,72 @@ class QImage(QLabel):
         """ Set the image and resize it to fit in the box """
         self.img_path = src  # Save the path
         new_img = QPixmap(src)  # Load the image
-        self.original_image_size = (new_img.height(), new_img.width())  # Save the original image size
         self._source = new_img.scaled(MAX_IMG_W, MAX_IMG_H, Qt.KeepAspectRatio)  # Save the rescaled source image
         self._source.save(src)  # Save the resized image
-        self.new_image_size = (self._source.height(), self._source.width())  # Save the rescaled image size
         self.setPixmap(self._source)  # Display the image
-        self.base_pixmap = self._source
+        self.base_pixmap = self._source.copy()
+
+    def update_brush_radius(self, value: int) -> None:
+        self.brush_radius = value
+
+    def emit_signal(self, ev: QMouseEvent) -> None:
+        self.signal.emit(ev.x() - self.border, ev.y() + self.border, self.button)
 
     def mousePressEvent(self, ev: QMouseEvent) -> None:
         """ Event when mouse is pressed on the image """
         if self.clickEnabled:
             self.holding = True
             self.button = ev.button()
-            x, y = [self.original_image_size[i]*(ev.x(), ev.y())[i]/self.new_image_size[i] for i in (0, 1)]
-            self.signal.emit(x, y, self.button)
+            self.emit_signal(ev)
 
     def mouseMoveEvent(self, ev: QMouseEvent) -> None:
         """ Event when mouse is moved on the image """
-        if self.holding and self.holdEnabled:
-            x, y = [self.original_image_size[i] * (ev.x(), ev.y())[i] / self.new_image_size[i] for i in (0, 1)]
-            self.signal.emit(x, y, self.button)
+        x, y = ev.x() - self.border, ev.y() + self.border
 
-        elif self.zoomEnabled:
+        if self.holding and self.maskEnabled:
+            self.add_mask(x, y)
+            self.emit_signal(ev)
+
+        if self.zoomEnabled:
+            self.add_zoom(x, y)
+
+    def mouseReleaseEvent(self, ev: QMouseEvent) -> None:
+        """ Event when mouse is released on the image """
+        self.holding = False
+        self.button = Qt.MouseButton.NoButton
+
+    def add_mask(self, x: int, y: int) -> None:
+            rectangle = QRect(QPoint(x - self.brush_radius, y - self.brush_radius),
+                              2*self.brush_radius*QSize(1, 1))
+            overlay_pixmap = self.base_pixmap.copy(rectangle)
+
+            crosshair = QPainter(overlay_pixmap)
+            if self.button == Qt.MouseButton.LeftButton:
+                pen = QPen(QColor(255, 0, 0, 100), 3*self.brush_radius)
+            elif self.button == Qt.MouseButton.RightButton:
+                pen = QPen(QColor(255, 0, 0, 0), 3*self.brush_radius)
+            else:
+                pen = QPen(QColor(255, 0, 0, 80), 3*self.brush_radius)
+            crosshair.setPen(pen)
+            crosshair.drawPoint(overlay_pixmap.rect().center())
+            crosshair.end()
+
+            path = QPainterPath()
+            rectangle = QRectF(QPoint(x - self.brush_radius, y - self.brush_radius),
+                               2*self.brush_radius*QSizeF(1, 1))
+            path.addEllipse(rectangle)
+
+            painter = QPainter(self.contour_pixmap)
+            painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
+            painter.setClipPath(path, Qt.IntersectClip)
+            painter.drawPixmap(QPoint(x - self.brush_radius, y - self.brush_radius), overlay_pixmap)
+            painter.end()
+
+            self.setPixmap(self.contour_pixmap)
+
+    def add_zoom(self, x: int, y: int) -> None:
             base_pixmap = self.base_pixmap.copy()
-            rectangle = QRect(QPoint(ev.x() - self.radius/2, ev.y() - self.radius/2), self.radius*QSize(1, 1))
+            rectangle = QRect(QPoint(x - self.radius/2, y - self.radius/2), self.radius*QSize(1, 1))
             overlay_pixmap = base_pixmap.copy(rectangle).scaledToWidth(self.zoom*self.radius, Qt.SmoothTransformation)
 
             crosshair = QPainter(overlay_pixmap)
@@ -71,22 +130,17 @@ class QImage(QLabel):
             crosshair.drawEllipse(overlay_pixmap.rect())
             crosshair.end()
 
-            rectangle_zoomed = QRectF(QPoint(ev.x(), ev.y()), self.zoom*self.radius*QSizeF(1, 1))
+            rectangle_zoomed = QRectF(QPoint(x, y), self.zoom*self.radius*QSizeF(1, 1))
             path = QPainterPath()
             path.addEllipse(rectangle_zoomed)
 
             painter = QPainter(base_pixmap)
             painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
             painter.setClipPath(path, Qt.IntersectClip)
-            painter.drawPixmap(QPoint(ev.x(), ev.y()), overlay_pixmap)
+            painter.drawPixmap(QPoint(x, y), overlay_pixmap)
             painter.end()
 
             self.setPixmap(base_pixmap)
-
-    def mouseReleaseEvent(self, ev: QMouseEvent) -> None:
-        """ Event when mouse is released on the image """
-        self.holding = False
-        self.button = Qt.MouseButton.NoButton
 
 
 class QCoord(QVBoxLayout):
