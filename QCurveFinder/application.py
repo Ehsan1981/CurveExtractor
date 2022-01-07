@@ -467,6 +467,9 @@ class CurveFinder(QWidget):
             self.instruct.setEnabled(False)
             self.img_op.setEnabled(True)
             self.img_op.is_brush = True
+            self.img.clickEnabled = False
+            self.img.zoomEnabled = False
+            self.img.holdEnabled = False
 
         elif state == AppState.STARTED:
             """Pressed Start"""
@@ -482,9 +485,13 @@ class CurveFinder(QWidget):
             self.pts_final_r = []
             self.pts_eval_r = []
             self.img.source = ORIG_IMG
+            self.img.clickEnabled = True
+            self.img.zoomEnabled = True
 
         elif state == AppState.COORD_ALL_SELECTED:
             """Coordinate all selected"""
+            self.img.clickEnabled = False
+            self.img.zoomEnabled = False
 
         elif state == AppState.FILTER_CHOICE:
             """Chose the coord and rotated"""
@@ -496,6 +503,7 @@ class CurveFinder(QWidget):
             """Chose the displaying"""
             self.instruct.textbox.setMarkdown(EDGE_SELECTION_TEXT)
             self.img_op.setEnabled(False)
+            self.img.clickEnabled = True
             self.img.holdEnabled = True
             img = cv2.cvtColor(cv2.imread(CONT_IMG), cv2.COLOR_BGR2GRAY)
             img = np.greater(img, np.zeros(img.shape))*255  # Create the contour mask
@@ -504,6 +512,8 @@ class CurveFinder(QWidget):
 
         elif state == AppState.EQUATION_IMAGE:
             """Selected the edges to keep"""
+            self.img.clickEnabled = False
+            self.img.holdEnabled = False
             img = cv2.cvtColor(cv2.imread(CTMK_IMG), cv2.COLOR_BGR2GRAY)
             img = np.equal(img, self.mask)
             pts_y, pts_x = np.where(img)
