@@ -158,12 +158,16 @@ class QCoord(QVBoxLayout):
         self.pts: List[Tuple[int, int]] = [(-1, -1)]*4
 
         # Create the widget
+        self.label = QLabel(text="Coordinates :")
+        self.label.setFont(QFont("Helvetica", 10, QFont.Bold))
+
         self.x1_coord = self.QCoordBox(self.pts_labels[0])
         self.x2_coord = self.QCoordBox(self.pts_labels[1])
         self.y1_coord = self.QCoordBox(self.pts_labels[2])
         self.y2_coord = self.QCoordBox(self.pts_labels[3])
 
         # Create the layout
+        self.addWidget(self.label)
         self.addLayout(self.x1_coord)
         self.addLayout(self.x2_coord)
         self.addLayout(self.y1_coord)
@@ -268,7 +272,6 @@ class QInstructBox(QVBoxLayout):
         self.but_copy: QPushButton = QPushButton(text="Copy")
 
         self.textbox: QTextBrowser = QTextBrowser()
-        self.textbox.setMarkdown("Select a graph to start.")
         self.textbox.setFont(QFont("Calibri", 12, QFont.Bold))
 
         # Create the layout
@@ -304,6 +307,9 @@ class QImageOptions(QVBoxLayout):
         super().__init__()
 
         # Set the radios
+        self.label = QLabel(text="Image/graph options :")
+        self.label.setFont(QFont("Helvetica", 10, QFont.Bold))
+
         self.label0: QLabel = QLabel(text="Wanted equation :")
         self.bg_formula: QButtonGroup = QButtonGroup()
         self.y_from_x: QRadioButton = QRadioButton(text="y = f(x)")
@@ -329,6 +335,7 @@ class QImageOptions(QVBoxLayout):
         self.bg_y.addButton(self.y_log)
 
         # Set the combobox
+        self.label_combo: QLabel = QLabel(text="Filter :")
         self.combo: QComboBox = QComboBox()
         self.combo.addItems(self.options)
         self.combo.currentTextChanged.connect(self.combo_change)
@@ -371,6 +378,10 @@ class QImageOptions(QVBoxLayout):
         hb1.addWidget(self.y_lin)
         hb1.addWidget(self.y_log)
 
+        hbcombo = QHBoxLayout()
+        hbcombo.addWidget(self.label_combo)
+        hbcombo.addWidget(self.combo, stretch=4)
+
         hb2 = QHBoxLayout()
         hb2.addWidget(self.label1)
         hb2.addWidget(self.slider1)
@@ -384,9 +395,10 @@ class QImageOptions(QVBoxLayout):
         hb4.addWidget(self.spinbox)
 
         # Set the final layout
+        self.addWidget(self.label)
         self.addLayout(hb0)
         self.addLayout(hb1)
-        self.addWidget(self.combo)
+        self.addLayout(hbcombo)
         self.addLayout(hb2)
         self.addLayout(hb3)
         self.addLayout(hb4)
