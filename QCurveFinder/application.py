@@ -509,13 +509,13 @@ class QCurveFinder(QWidget):
 
             rad = int(self.img.image_size[0] / 100)
             cv2.circle(img, (int(self.x_axis_curve["X1_p"]), int(self.x_axis_curve["Y_p"])),
-                       rad, self.pts_colors[0], -1)
+                       rad, self.img.pts_colors[0].getRgb(), -1)
             cv2.circle(img, (int(self.x_axis_curve["X2_p"]), int(self.x_axis_curve["Y_p"])),
-                       rad, self.pts_colors[1], -1)
+                       rad, self.img.pts_colors[1].getRgb(), -1)
             cv2.circle(img, (int(self.y_axis_curve["X_p"]), int(self.y_axis_curve["Y1_p"])),
-                       rad, self.pts_colors[2], -1)
+                       rad, self.img.pts_colors[2].getRgb(), -1)
             cv2.circle(img, (int(self.y_axis_curve["X_p"]), int(self.y_axis_curve["Y2_p"])),
-                       rad, self.pts_colors[3], -1)
+                       rad, self.img.pts_colors[3].getRgb(), -1)
 
             cv2.imwrite(SELE_IMG, img)
             self.img.source = SELE_IMG

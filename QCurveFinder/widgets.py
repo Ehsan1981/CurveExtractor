@@ -39,52 +39,7 @@ class QImage(QLabel):
         self.updated_pixmap: QPixmap = None
 
         self.brush_radius: int = 5
-
-    @property
-    def maskEnabled(self) -> bool:
-        """ Return if maskEnable is true or not """
-        return self._maskEnabled
-
-    @maskEnabled.setter
-    def maskEnabled(self, a0: bool) -> None:
-        """ Set the maskEnable attribute """
-        self._maskEnabled = a0
-        self.updated_pixmap = self.source.copy()
-
-    @property
-    def coordEnabled(self) -> bool:
-        """ Return if coordEnable is true or not """
-        return self._coordEnabled
-
-    @coordEnabled.setter
-    def coordEnabled(self, a0: bool) -> None:
-        """ Set the coordEnable attribute """
-        self._coordEnabled = a0
-        self.updated_pixmap = self.source.copy()
-        self.num_printed_coord = 0
-
-    @property
-    def source(self) -> QPixmap:
-        """ Return the image """
-        return self._source
-
-    @source.setter
-    def source(self, src: str) -> None:
-        """ Set the image and resize it to fit in the box """
-        self.img_path = src  # Save the path
-        new_img = QPixmap(src)  # Load the image
-        self._source = new_img.scaled(MAX_IMG_W, MAX_IMG_H, Qt.KeepAspectRatio)  # Save the rescaled source image
-        self.image_size = (self._source.height(), self._source.width())
-        self._source.save(src)  # Save the resized image
-        self.setPixmap(self._source)  # Display the image
-        self.base_pixmap = self._source.copy()
-
-    def update_brush_radius(self, value: int) -> None:
-        self.brush_radius = value
-
-    def emit_signal(self, ev: QMouseEvent) -> None:
-        x, y = self.get_xy_from_event(ev)
-        self.signal.emit(x, y, self.button)
+        self.pts: List[QPoint, QPoint, QPoint, QPoint] = [None, None, None, None]
 
     def mousePressEvent(self, ev: QMouseEvent) -> None:
         """ Event when mouse is pressed on the image """
@@ -93,6 +48,8 @@ class QImage(QLabel):
         if self.clickEnabled:
             self.holding = True
             self.button = ev.button()
+            if self.maskEnabled:
+                self.add_mask(x, y)
             if self.coordEnabled:
                 self.add_coord(x, y)
             self.emit_signal(ev)
@@ -135,6 +92,8 @@ class QImage(QLabel):
             painter.end()
 
             self.setPixmap(self.base_pixmap)
+
+            self.pts[self.num_printed_coord] = QPoint(x, y)
 
             self.num_printed_coord += 1
 
@@ -210,8 +169,54 @@ class QImage(QLabel):
 
         self.setPixmap(base_pixmap)
 
+    def update_brush_radius(self, value: int) -> None:
+        self.brush_radius = value
+
+    def emit_signal(self, ev: QMouseEvent) -> None:
+        x, y = self.get_xy_from_event(ev)
+        self.signal.emit(x, y, self.button)
+
     def get_xy_from_event(self, ev: QMouseEvent) -> Tuple[int, int]:
         return ev.x() - self.border, ev.y() + self.border
+
+    @property
+    def maskEnabled(self) -> bool:
+        """ Return if maskEnable is true or not """
+        return self._maskEnabled
+
+    @maskEnabled.setter
+    def maskEnabled(self, a0: bool) -> None:
+        """ Set the maskEnable attribute """
+        self._maskEnabled = a0
+        self.updated_pixmap = self.source.copy()
+
+    @property
+    def coordEnabled(self) -> bool:
+        """ Return if coordEnable is true or not """
+        return self._coordEnabled
+
+    @coordEnabled.setter
+    def coordEnabled(self, a0: bool) -> None:
+        """ Set the coordEnable attribute """
+        self._coordEnabled = a0
+        self.updated_pixmap = self.source.copy()
+        self.num_printed_coord = 0
+
+    @property
+    def source(self) -> QPixmap:
+        """ Return the image """
+        return self._source
+
+    @source.setter
+    def source(self, src: str) -> None:
+        """ Set the image and resize it to fit in the box """
+        self.img_path = src  # Save the path
+        new_img = QPixmap(src)  # Load the image
+        self._source = new_img.scaled(MAX_IMG_W, MAX_IMG_H, Qt.KeepAspectRatio)  # Save the rescaled source image
+        self.image_size = (self._source.height(), self._source.width())
+        self._source.save(src)  # Save the resized image
+        self.setPixmap(self._source)  # Display the image
+        self.base_pixmap = self._source.copy()
 
 
 class QCoord(QVBoxLayout):
