@@ -7,7 +7,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 from .widgets import QImage, QInstructBox, QImageOptions, QCoord
-from .tools import get_copy_text
+from .tools import get_copy_text, CurveFinder
 from .constants import *
 
 from random import randrange
@@ -27,15 +27,12 @@ class QCurveFinder(QWidget):
         QWidget.__init__(self)
 
         # Set class variables
+        self.curvefinder: CurveFinder
         self.img_src: str = PH_IMAGE_PATH
         self.coord: np.ndarray = np.zeros(4, dtype=float)
         self.pts_final_p: List[np.ndarray] = []
         self.pts_final_r: List[np.ndarray] = []
         self.pts_eval_r: List[np.ndarray] = []
-        self.x_axis_curve: dict = {}
-        self.y_axis_curve: dict = {}
-        self.Xpr: float = 0.0
-        self.Ypr: float = 0.0
         self.coef: list = []
         self.order: int = 5
         self.var: str = "x"
@@ -154,16 +151,16 @@ class QCurveFinder(QWidget):
         """ Method used when clicking with the mouse on the image """
         if self.app_state == AppState.STARTED:
             if not self.coord_prompt.x1_done:
-                self.draw_points(x1=(x, y))
+                self.coord_prompt.pts[0] = (x, y)
                 self.coord_prompt.x1_done = True
             elif not self.coord_prompt.x2_done:
-                self.draw_points(x2=(x, y))
+                self.coord_prompt.pts[1] = (x, y)
                 self.coord_prompt.x2_done = True
             elif not self.coord_prompt.y1_done:
-                self.draw_points(y1=(x, y))
+                self.coord_prompt.pts[2] = (x, y)
                 self.coord_prompt.y1_done = True
             elif not self.coord_prompt.y2_done:
-                self.draw_points(y2=(x, y))
+                self.coord_prompt.pts[3] = (x, y)
                 self.coord_prompt.y2_done = True
                 self.app_state = AppState.COORD_ALL_SELECTED
 
@@ -173,63 +170,20 @@ class QCurveFinder(QWidget):
             elif button == Qt.MouseButton.RightButton:
                 self.draw_mask(x, y, 1)
 
-    def draw_points(self, x1: tuple = None, x2: tuple = None, y1: tuple = None, y2: tuple = None) -> None:
-        """ Method to draw the point on th image """
-        if x1 is not None:
-            self.coord_prompt.pts[0] = x1
-        if x2 is not None:
-            self.coord_prompt.pts[1] = x2
-        if y1 is not None:
-            self.coord_prompt.pts[2] = y1
-        if y2 is not None:
-            self.coord_prompt.pts[3] = y2
-
     def draw_mask(self, x: int, y: int, color: int) -> None:
         """ Method to draw the brush on the image """
         radius = self.img_op.spinbox.value()
         cv2.circle(self.mask, (x, y), radius, color, -1)
 
     def resize_and_rotate(self) -> None:
-        """
-        Method to rotate the image after the coordinate are confirmed.
-        """
-        X1_x = self.x_axis_curve["X1"] = self.coord_prompt.pts[0][0]
-        X1_y = self.x_axis_curve["Y1"] = self.coord_prompt.pts[0][1]
-        X2_x = self.x_axis_curve["X2"] = self.coord_prompt.pts[1][0]
-        X2_y = self.x_axis_curve["Y2"] = self.coord_prompt.pts[1][1]
-        Y1_x = self.y_axis_curve["X1"] = self.coord_prompt.pts[2][0]
-        Y1_y = self.y_axis_curve["Y1"] = self.coord_prompt.pts[2][1]
-        Y2_x = self.y_axis_curve["X2"] = self.coord_prompt.pts[3][0]
-        Y2_y = self.y_axis_curve["Y2"] = self.coord_prompt.pts[3][1]
-
-        Ax = self.x_axis_curve["A"] = (X2_y - X1_y)/(X2_x - X1_x)
-        Y_dx = Y2_x - Y1_x
-        if Y_dx == 0:
-            self.y_axis_curve["A"] = mt.inf
-            X0 = Y1_x
-        else:
-            Ay = self.y_axis_curve["A"] = (Y2_y - Y1_y)/Y_dx
-            X0 = (Ay*Y1_x - Ax*X1_x + X1_y - Y1_y)/(Ay - Ax)
-
-        Y0 = Ax*(X0 - X1_x) + X1_y
-        angle_x = mt.atan((X2_y - X1_y)/(X2_x - X1_x))
-        angle_y = mt.atan(-(Y2_x - Y1_x)/(Y2_y - Y1_y))
-        angle = (angle_x + angle_y)/2
-
-        R = cv2.getRotationMatrix2D((X0, Y0), 180*angle/mt.pi, 1)
+        """ Method to rotate the image after the coordinate are confirmed. """
         img = cv2.imread(self.img_src)
-        img = cv2.warpAffine(img, R, img.shape[1::-1], flags=cv2.INTER_LINEAR)
+        rot_matrix = self.curvefinder.get_rotation_matrix(self.coord_prompt.pts)
+        img = cv2.warpAffine(img, rot_matrix, img.shape[1::-1], flags=cv2.INTER_LINEAR)
 
         cv2.imwrite(ROTA_IMG, img)
         self.img.source = ROTA_IMG
 
-        self.x_axis_curve["Y_p"] = Y0
-        self.x_axis_curve["X1_p"] = X0 + (X1_x - X0)/mt.cos(angle)
-        self.x_axis_curve["X2_p"] = X0 + (X2_x - X0)/mt.cos(angle)
-
-        self.y_axis_curve["X_p"] = X0
-        self.y_axis_curve["Y1_p"] = Y0 + (Y1_y - Y0)/mt.cos(angle)
-        self.y_axis_curve["Y2_p"] = Y0 + (Y2_y - Y0)/mt.cos(angle)
         self.update_lin_log()
 
     def update_lin_log(self):
@@ -238,92 +192,8 @@ class QCurveFinder(QWidget):
         make the relation between graph and pixel space.
         """
         if self.app_state >= AppState.FILTER_CHOICE:
-            if self.img_op.x_lin.isChecked():
-                X1 = self.coord[0]
-                X2 = self.coord[1]
-            else:
-                X1 = mt.log10(self.coord[0])
-                X2 = mt.log10(self.coord[1])
-
-            X1_p = self.x_axis_curve["X1_p"]
-            X2_p = self.x_axis_curve["X2_p"]
-            self.Xpr = (X2 - X1)/(X2_p - X1_p)
-
-            if self.img_op.y_lin.isChecked():
-                Y1 = self.coord[2]
-                Y2 = self.coord[3]
-            else:
-                Y1 = mt.log10(self.coord[2])
-                Y2 = mt.log10(self.coord[3])
-
-            Y1_p = self.y_axis_curve["Y1_p"]
-            Y2_p = self.y_axis_curve["Y2_p"]
-            self.Ypr = (Y2 - Y1)/(Y2_p - Y1_p)
+            self.curvefinder.update_lin_log(self.img_op.x_lin.isChecked(), self.img_op.y_lin.isChecked())
             self.set_equation()
-
-    def update_image(self) -> None:
-        """ Method to update the image with the contour chosen in the combobox """
-        if self.app_state == AppState.FILTER_CHOICE:
-            img = cv2.cvtColor(cv2.imread(ROTA_IMG), cv2.COLOR_BGR2GRAY)
-            tr1, tr2 = [self.img_op.slider1.value(), self.img_op.slider2.value()]
-
-            mode = self.img_op.combo.currentText()
-
-            if mode == "Canny":
-                img = cv2.Canny(img, tr1, tr2)
-            elif mode == "Global Tresholding":
-                img = cv2.medianBlur(img, 5)
-                ret, img = cv2.threshold(img, tr1, tr2, cv2.THRESH_BINARY)
-            elif mode == "Adaptive Mean Tresholding":
-                img = cv2.medianBlur(img, 5)
-                img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
-            elif mode == "Adaptive Gausian Tresholding":
-                img = cv2.medianBlur(img, 5)
-                img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-            elif mode == "Otsu's Tresholding":
-                ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-            elif mode == "Otsu's Tresholding + Gausian Blur":
-                img = cv2.GaussianBlur(img, (5, 5), 0)
-                ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-            else:
-                pass
-
-            cont, h = cv2.findContours(img, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-            a, b = img.shape
-            img = np.zeros((a, b, 3))
-
-            for c in cont:
-                col = (randrange(255), randrange(255), randrange(255))
-                cv2.drawContours(img, c, -1, col)
-
-            cv2.imwrite(CONT_IMG, img)
-            self.img.source = CONT_IMG
-
-    def pixel_to_graph(self, pt: tuple) -> np.ndarray:
-        """ Method to convert a pixel coordinate to a graph coordinate """
-        x, y = pt
-        if self.img_op.x_lin.isChecked():
-            a = self.Xpr*(x - self.x_axis_curve["X1_p"]) + self.coord[0]
-        else:
-            a = mt.pow(10, self.Xpr*(x - self.x_axis_curve["X1_p"]) + mt.log10(self.coord[0]))
-        if self.img_op.y_lin.isChecked():
-            b = self.Ypr*(y - self.y_axis_curve["Y1_p"]) + self.coord[2]
-        else:
-            b = mt.pow(10, self.Ypr*(y - self.y_axis_curve["Y1_p"]) + mt.log10(self.coord[2]))
-        return np.array([a, b])
-
-    def graph_to_pixel(self, pt: tuple) -> np.ndarray:
-        """ Method to convert a graph coordinate to a pixel coordinate """
-        a, b = pt
-        if self.img_op.x_lin:
-            x = (a - self.coord[0])/self.Xpr + self.x_axis_curve["X1_p"]
-        else:
-            x = (mt.log10(a) - mt.log10(self.coord[0]))/self.Xpr + self.x_axis_curve["X1_p"]
-        if self.img_op.y_lin:
-            y = (b - self.coord[2])/self.Ypr + self.y_axis_curve["Y1_p"]
-        else:
-            y = (mt.log10(b) - mt.log10(self.coord[2]))/self.Ypr + self.y_axis_curve["Y1_p"]
-        return np.array([x, y])
 
     def set_equation(self, do: bool = True) -> None:
         """ Method to update the equation displayed in the instruction box """
@@ -391,6 +261,44 @@ class QCurveFinder(QWidget):
             if self.app_state == AppState.EQUATION_PLOT:
                 self.plot_points()
 
+    def update_image(self) -> None:
+        """ Method to update the image with the contour chosen in the combobox """
+        if self.app_state == AppState.FILTER_CHOICE:
+            img = cv2.cvtColor(cv2.imread(ROTA_IMG), cv2.COLOR_BGR2GRAY)
+            tr1, tr2 = [self.img_op.slider1.value(), self.img_op.slider2.value()]
+
+            mode = self.img_op.combo.currentText()
+
+            if mode == "Canny":
+                img = cv2.Canny(img, tr1, tr2)
+            elif mode == "Global Tresholding":
+                img = cv2.medianBlur(img, 5)
+                ret, img = cv2.threshold(img, tr1, tr2, cv2.THRESH_BINARY)
+            elif mode == "Adaptive Mean Tresholding":
+                img = cv2.medianBlur(img, 5)
+                img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+            elif mode == "Adaptive Gausian Tresholding":
+                img = cv2.medianBlur(img, 5)
+                img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+            elif mode == "Otsu's Tresholding":
+                ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+            elif mode == "Otsu's Tresholding + Gausian Blur":
+                img = cv2.GaussianBlur(img, (5, 5), 0)
+                ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+            else:
+                pass
+
+            cont, h = cv2.findContours(img, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+            a, b = img.shape
+            img = np.zeros((a, b, 3))
+
+            for c in cont:
+                col = (randrange(255), randrange(255), randrange(255))
+                cv2.drawContours(img, c, -1, col)
+
+            cv2.imwrite(CONT_IMG, img)
+            self.img.source = CONT_IMG
+
     def plot_points(self) -> None:
         """ Method to generate the plot image and display it """
         fig = Figure(figsize=(MAX_IMG_W/100, MAX_IMG_H/100), dpi=100)
@@ -451,6 +359,8 @@ class QCurveFinder(QWidget):
             self.img.zoomEnabled = False
             self.img.maskEnabled = False
 
+            self.curvefinder = CurveFinder()
+
         elif state == AppState.STARTED:
             """Pressed Start"""
             self.instruct.textbox.setMarkdown(STARTED_TEXT)
@@ -478,6 +388,10 @@ class QCurveFinder(QWidget):
         elif state == AppState.FILTER_CHOICE:
             """Chose the coord and rotated"""
             self.instruct.textbox.setMarkdown(FILTER_CHOICE_TEXT)
+            self.curvefinder.X1 = self.coord[0]
+            self.curvefinder.X2 = self.coord[1]
+            self.curvefinder.Y1 = self.coord[2]
+            self.curvefinder.Y2 = self.coord[3]
             self.resize_and_rotate()
             self.update_image()
 
@@ -502,23 +416,15 @@ class QCurveFinder(QWidget):
 
             img = cv2.imread(ROTA_IMG)
             for (x, y) in zip(pts_x, pts_y):
-                a, b = self.pixel_to_graph((x, y))
+                a, b = self.curvefinder.pixel_to_graph((x, y), self.img_op.x_lin.isChecked(),
+                                                       self.img_op.y_lin.isChecked())
                 self.pts_final_p.append((x, y))
                 self.pts_final_r.append(np.array([a, b]))
                 cv2.circle(img, (x, y), 2, (0, 0, 255), -1)
 
-            rad = int(self.img.image_size[0] / 100)
-            cv2.circle(img, (int(self.x_axis_curve["X1_p"]), int(self.x_axis_curve["Y_p"])),
-                       rad, self.img.pts_colors[0].getRgb(), -1)
-            cv2.circle(img, (int(self.x_axis_curve["X2_p"]), int(self.x_axis_curve["Y_p"])),
-                       rad, self.img.pts_colors[1].getRgb(), -1)
-            cv2.circle(img, (int(self.y_axis_curve["X_p"]), int(self.y_axis_curve["Y1_p"])),
-                       rad, self.img.pts_colors[2].getRgb(), -1)
-            cv2.circle(img, (int(self.y_axis_curve["X_p"]), int(self.y_axis_curve["Y2_p"])),
-                       rad, self.img.pts_colors[3].getRgb(), -1)
-
             cv2.imwrite(SELE_IMG, img)
             self.img.source = SELE_IMG
+            self.img.draw_points(self.curvefinder.get_points())
             self.instruct.setEnabled(True)
             self.img_op.is_brush = False
             self.set_equation()

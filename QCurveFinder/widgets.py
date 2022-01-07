@@ -169,6 +169,32 @@ class QImage(QLabel):
 
         self.setPixmap(base_pixmap)
 
+    def draw_points(self, pts: Tuple[Tuple[float, float], ...]) -> None:
+        for i, pt in enumerate(pts):
+            x, y = pt
+            self.pts[i] = QPoint(int(x), int(y))
+
+        for pt, color, label in zip(self.pts, self.pts_colors, self.pts_labels):
+            painter = QPainter(self.base_pixmap)
+            # Set the pen for the point
+            pen = QPen(color, 15)
+            pen.setCapStyle(Qt.RoundCap)
+            painter.setPen(pen)
+            painter.drawPoint(pt)
+
+            # Draw text
+            text = QTextDocument()
+            text.setHtml(label)
+            font = text.defaultFont()
+            font.setPointSize(14)
+            text.setDefaultFont(font)
+            painter.translate(pt)
+            text.drawContents(painter)
+
+            painter.end()
+
+        self.setPixmap(self.base_pixmap)
+
     def update_brush_radius(self, value: int) -> None:
         self.brush_radius = value
 
