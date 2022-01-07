@@ -22,9 +22,6 @@ import os
 class QCurveFinder(QWidget):
     """ The application in itself """
 
-    pts_colors: Tuple[Tuple[int]] = ((204, 0, 0), (0, 153, 0), (0, 0, 153), (204, 204, 0))
-    pts_labels: Tuple[str] = ("X1", "X2", "Y1", "Y2")
-
     def __init__(self) -> None:
         """ Initialise the app """
         QWidget.__init__(self)
@@ -186,17 +183,6 @@ class QCurveFinder(QWidget):
             self.coord_prompt.pts[2] = y1
         if y2 is not None:
             self.coord_prompt.pts[3] = y2
-
-        img = cv2.imread(ORIG_IMG)
-
-        for (i, pt) in enumerate(self.coord_prompt.pts):
-            if sum(pt) != -2:
-                rad = int(self.img.image_size[0]/100)
-                cv2.circle(img, pt, rad, self.pts_colors[i], -1)
-                cv2.putText(img, self.pts_labels[i], pt, cv2.FONT_HERSHEY_SIMPLEX, int(rad/3), self.pts_colors[i], rad)
-
-        cv2.imwrite(COOR_IMG, img)
-        self.img.source = COOR_IMG
 
     def draw_mask(self, x: int, y: int, color: int) -> None:
         """ Method to draw the brush on the image """
@@ -480,11 +466,13 @@ class QCurveFinder(QWidget):
             self.pts_eval_r = []
             self.img.source = ORIG_IMG
             self.img.clickEnabled = True
+            self.img.coordEnabled = True
             self.img.zoomEnabled = True
 
         elif state == AppState.COORD_ALL_SELECTED:
             """Coordinate all selected"""
             self.img.clickEnabled = False
+            self.img.coordEnabled = False
             self.img.zoomEnabled = False
 
         elif state == AppState.FILTER_CHOICE:

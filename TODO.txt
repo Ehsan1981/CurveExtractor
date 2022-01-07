@@ -1,6 +1,5 @@
 - Dark stylesheet
 - Evaluate function at the end
-- Change the way to display the x and y on the graph
 - Add github action to build the exe on many os
 - Remove the need to save the image each times
 - Create a class for the curve extraction that is separate from the ui

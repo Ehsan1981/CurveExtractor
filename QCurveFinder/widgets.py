@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QCheckBox, QLineEdit, QTextBrowser, \
     QSlider, QComboBox, QRadioButton, QSpinBox, QButtonGroup
-from PyQt5.QtGui import QPixmap, QMouseEvent, QFont, QPainter, QPainterPath, QPen, QColor
+from PyQt5.QtGui import QPixmap, QMouseEvent, QFont, QPainter, QPainterPath, QPen, QColor, QTextDocument
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QRect, QSize, QRectF, QSizeF
 
 from typing import List, Tuple
@@ -15,6 +15,9 @@ class QImage(QLabel):
     zoom = 2
     radius = 60
     border: int = 3
+    pts_colors: Tuple[QColor] = (QColor(204, 0, 0, 150), QColor(0, 153, 0, 150),
+                                 QColor(0, 0, 153, 150), QColor(204, 204, 0, 150))
+    pts_labels: Tuple[str] = ("X<sub>1</sub>", "X<sub>2</sub>", "Y<sub>1</sub>", "Y<sub>2</sub>")
 
     def __init__(self, image_path: str) -> None:
         """ Initialise the image of the graph """
@@ -25,6 +28,7 @@ class QImage(QLabel):
         self.clickEnabled: bool = False
         self.zoomEnabled: bool = False
         self.maskEnabled = False
+        self.coordEnabled = False
         self.holding: bool = False
         self.button: Qt.MouseButton = Qt.MouseButton.NoButton
         self.setMouseTracking(True)
@@ -32,7 +36,7 @@ class QImage(QLabel):
         self.setStyleSheet(f"border: {self.border}px solid gray;")  # Add borders
 
         self.base_pixmap: QPixmap = None
-        self.contour_pixmap: QPixmap = None
+        self.updated_pixmap: QPixmap = None
 
         self.brush_radius: int = 5
 
@@ -45,7 +49,19 @@ class QImage(QLabel):
     def maskEnabled(self, a0: bool) -> None:
         """ Set the maskEnable attribute """
         self._maskEnabled = a0
-        self.contour_pixmap = self.source.copy()
+        self.updated_pixmap = self.source.copy()
+
+    @property
+    def coordEnabled(self) -> bool:
+        """ Return if coordEnable is true or not """
+        return self._coordEnabled
+
+    @coordEnabled.setter
+    def coordEnabled(self, a0: bool) -> None:
+        """ Set the coordEnable attribute """
+        self._coordEnabled = a0
+        self.updated_pixmap = self.source.copy()
+        self.num_printed_coord = 0
 
     @property
     def source(self) -> QPixmap:
@@ -67,22 +83,28 @@ class QImage(QLabel):
         self.brush_radius = value
 
     def emit_signal(self, ev: QMouseEvent) -> None:
-        self.signal.emit(ev.x() - self.border, ev.y() + self.border, self.button)
+        x, y = self.get_xy_from_event(ev)
+        self.signal.emit(x, y, self.button)
 
     def mousePressEvent(self, ev: QMouseEvent) -> None:
         """ Event when mouse is pressed on the image """
+        x, y = self.get_xy_from_event(ev)
+
         if self.clickEnabled:
             self.holding = True
             self.button = ev.button()
+            if self.coordEnabled:
+                self.add_coord(x, y)
             self.emit_signal(ev)
 
     def mouseMoveEvent(self, ev: QMouseEvent) -> None:
         """ Event when mouse is moved on the image """
-        x, y = ev.x() - self.border, ev.y() + self.border
+        x, y = self.get_xy_from_event(ev)
 
-        if self.holding and self.maskEnabled:
+        if self.maskEnabled:
             self.add_mask(x, y)
-            self.emit_signal(ev)
+            if self.holding:
+                self.emit_signal(ev)
 
         if self.zoomEnabled:
             self.add_zoom(x, y)
@@ -92,34 +114,78 @@ class QImage(QLabel):
         self.holding = False
         self.button = Qt.MouseButton.NoButton
 
+    def add_coord(self, x: int, y: int) -> None:
+        if self.button == Qt.MouseButton.LeftButton:
+            painter = QPainter(self.base_pixmap)
+
+            # Set the pen for the point
+            pen = QPen(self.pts_colors[self.num_printed_coord], 15)
+            pen.setCapStyle(Qt.RoundCap)
+            painter.setPen(pen)
+            painter.drawPoint(QPoint(x, y))
+
+            # Draw text
+            text = QTextDocument()
+            text.setHtml(self.pts_labels[self.num_printed_coord])
+            font = text.defaultFont()
+            font.setPointSize(14)
+            text.setDefaultFont(font)
+            painter.translate(QPoint(x, y))
+            text.drawContents(painter)
+            painter.end()
+
+            self.setPixmap(self.base_pixmap)
+
+            self.num_printed_coord += 1
+
     def add_mask(self, x: int, y: int) -> None:
         rectangle = QRect(QPoint(x - self.brush_radius, y - self.brush_radius),
                           2*self.brush_radius*QSize(1, 1))
         overlay_pixmap = self.base_pixmap.copy(rectangle)
+        crosshair_pixmap = self.base_pixmap.copy(rectangle)
 
-        crosshair = QPainter(overlay_pixmap)
-        if self.button == Qt.MouseButton.LeftButton:
+        # If holding, add the mask
+        if self.holding and self.button == Qt.MouseButton.LeftButton or self.button == Qt.MouseButton.RightButton:
+            brush_painter = QPainter(overlay_pixmap)
+            if self.button == Qt.MouseButton.LeftButton:
+                pen = QPen(QColor(255, 0, 0, 100), 3*self.brush_radius)
+            elif self.button == Qt.MouseButton.RightButton:
+                pen = QPen(QColor(255, 0, 0, 0), 3*self.brush_radius)
+            brush_painter.setPen(pen)
+            brush_painter.drawPoint(overlay_pixmap.rect().center())
+            brush_painter.end()
+
+        # Add a contour to visualize where you paint
+        crosshair_painter = QPainter(crosshair_pixmap)
+        if self.holding and self.button == Qt.MouseButton.LeftButton:
             pen = QPen(QColor(255, 0, 0, 100), 3*self.brush_radius)
-        elif self.button == Qt.MouseButton.RightButton:
-            pen = QPen(QColor(255, 0, 0, 0), 3*self.brush_radius)
-        else:
-            pen = QPen(QColor(255, 0, 0, 80), 3*self.brush_radius)
-        crosshair.setPen(pen)
-        crosshair.drawPoint(overlay_pixmap.rect().center())
-        crosshair.end()
+            crosshair_painter.setPen(pen)
+            crosshair_painter.drawPoint(overlay_pixmap.rect().center())
+        crosshair_painter.setPen(QPen(QColor(255, 255, 255, 80), 3))
+        crosshair_painter.drawEllipse(crosshair_pixmap.rect())
+        crosshair_painter.end()
 
         path = QPainterPath()
-        rectangle = QRectF(QPoint(x - self.brush_radius, y - self.brush_radius),
-                           2*self.brush_radius*QSizeF(1, 1))
+        rectangle = QRectF(QPoint(x - self.brush_radius, y - self.brush_radius), 2*self.brush_radius*QSizeF(1, 1))
         path.addEllipse(rectangle)
 
-        painter = QPainter(self.contour_pixmap)
-        painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
-        painter.setClipPath(path, Qt.IntersectClip)
-        painter.drawPixmap(QPoint(x - self.brush_radius, y - self.brush_radius), overlay_pixmap)
-        painter.end()
+        # If holding, add the mask to the updated pixmap
+        if self.holding:
+            mask_painter = QPainter(self.updated_pixmap)
+            mask_painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
+            mask_painter.setClipPath(path, Qt.IntersectClip)
+            mask_painter.drawPixmap(QPoint(x - self.brush_radius, y - self.brush_radius), overlay_pixmap)
+            mask_painter.end()
 
-        self.setPixmap(self.contour_pixmap)
+        # Add the crosshair to the pixmap
+        rendered_pixmap = self.updated_pixmap.copy()
+        final_crosshair_painter = QPainter(rendered_pixmap)
+        final_crosshair_painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
+        final_crosshair_painter.setClipPath(path, Qt.IntersectClip)
+        final_crosshair_painter.drawPixmap(QPoint(x - self.brush_radius, y - self.brush_radius), crosshair_pixmap)
+        final_crosshair_painter.end()
+
+        self.setPixmap(rendered_pixmap)
 
     def add_zoom(self, x: int, y: int) -> None:
         base_pixmap = self.base_pixmap.copy()
@@ -143,6 +209,9 @@ class QImage(QLabel):
         painter.end()
 
         self.setPixmap(base_pixmap)
+
+    def get_xy_from_event(self, ev: QMouseEvent) -> Tuple[int, int]:
+        return ev.x() - self.border, ev.y() + self.border
 
 
 class QCoord(QVBoxLayout):
