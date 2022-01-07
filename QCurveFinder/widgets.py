@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QCheckBox, QLineEdit, QTextBrowser,\
+from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QCheckBox, QLineEdit, QTextBrowser, \
     QSlider, QComboBox, QRadioButton, QSpinBox, QButtonGroup
 from PyQt5.QtGui import QPixmap, QMouseEvent, QFont, QPainter, QPainterPath, QPen, QColor
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QRect, QSize, QRectF, QSizeF
@@ -20,6 +20,8 @@ class QImage(QLabel):
         """ Initialise the image of the graph """
         super().__init__()
 
+        self.source: str = image_path  # Set the image
+
         self.clickEnabled: bool = False
         self.zoomEnabled: bool = False
         self.maskEnabled = False
@@ -28,7 +30,6 @@ class QImage(QLabel):
         self.setMouseTracking(True)
 
         self.setStyleSheet(f"border: {self.border}px solid gray;")  # Add borders
-        self.source: str = image_path  # Set the image
 
         self.base_pixmap: QPixmap = None
         self.contour_pixmap: QPixmap = None
@@ -91,56 +92,56 @@ class QImage(QLabel):
         self.button = Qt.MouseButton.NoButton
 
     def add_mask(self, x: int, y: int) -> None:
-            rectangle = QRect(QPoint(x - self.brush_radius, y - self.brush_radius),
-                              2*self.brush_radius*QSize(1, 1))
-            overlay_pixmap = self.base_pixmap.copy(rectangle)
+        rectangle = QRect(QPoint(x - self.brush_radius, y - self.brush_radius),
+                          2*self.brush_radius*QSize(1, 1))
+        overlay_pixmap = self.base_pixmap.copy(rectangle)
 
-            crosshair = QPainter(overlay_pixmap)
-            if self.button == Qt.MouseButton.LeftButton:
-                pen = QPen(QColor(255, 0, 0, 100), 3*self.brush_radius)
-            elif self.button == Qt.MouseButton.RightButton:
-                pen = QPen(QColor(255, 0, 0, 0), 3*self.brush_radius)
-            else:
-                pen = QPen(QColor(255, 0, 0, 80), 3*self.brush_radius)
-            crosshair.setPen(pen)
-            crosshair.drawPoint(overlay_pixmap.rect().center())
-            crosshair.end()
+        crosshair = QPainter(overlay_pixmap)
+        if self.button == Qt.MouseButton.LeftButton:
+            pen = QPen(QColor(255, 0, 0, 100), 3*self.brush_radius)
+        elif self.button == Qt.MouseButton.RightButton:
+            pen = QPen(QColor(255, 0, 0, 0), 3*self.brush_radius)
+        else:
+            pen = QPen(QColor(255, 0, 0, 80), 3*self.brush_radius)
+        crosshair.setPen(pen)
+        crosshair.drawPoint(overlay_pixmap.rect().center())
+        crosshair.end()
 
-            path = QPainterPath()
-            rectangle = QRectF(QPoint(x - self.brush_radius, y - self.brush_radius),
-                               2*self.brush_radius*QSizeF(1, 1))
-            path.addEllipse(rectangle)
+        path = QPainterPath()
+        rectangle = QRectF(QPoint(x - self.brush_radius, y - self.brush_radius),
+                           2*self.brush_radius*QSizeF(1, 1))
+        path.addEllipse(rectangle)
 
-            painter = QPainter(self.contour_pixmap)
-            painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
-            painter.setClipPath(path, Qt.IntersectClip)
-            painter.drawPixmap(QPoint(x - self.brush_radius, y - self.brush_radius), overlay_pixmap)
-            painter.end()
+        painter = QPainter(self.contour_pixmap)
+        painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
+        painter.setClipPath(path, Qt.IntersectClip)
+        painter.drawPixmap(QPoint(x - self.brush_radius, y - self.brush_radius), overlay_pixmap)
+        painter.end()
 
-            self.setPixmap(self.contour_pixmap)
+        self.setPixmap(self.contour_pixmap)
 
     def add_zoom(self, x: int, y: int) -> None:
-            base_pixmap = self.base_pixmap.copy()
-            rectangle = QRect(QPoint(x - self.radius/2, y - self.radius/2), self.radius*QSize(1, 1))
-            overlay_pixmap = base_pixmap.copy(rectangle).scaledToWidth(self.zoom*self.radius, Qt.SmoothTransformation)
+        base_pixmap = self.base_pixmap.copy()
+        rectangle = QRect(QPoint(x - self.radius/2, y - self.radius/2), self.radius*QSize(1, 1))
+        overlay_pixmap = base_pixmap.copy(rectangle).scaledToWidth(self.zoom*self.radius, Qt.SmoothTransformation)
 
-            crosshair = QPainter(overlay_pixmap)
-            crosshair.setPen(QPen(Qt.black, 3))
-            crosshair.drawPoint(overlay_pixmap.rect().center())
-            crosshair.drawEllipse(overlay_pixmap.rect())
-            crosshair.end()
+        crosshair = QPainter(overlay_pixmap)
+        crosshair.setPen(QPen(Qt.black, 3))
+        crosshair.drawPoint(overlay_pixmap.rect().center())
+        crosshair.drawEllipse(overlay_pixmap.rect())
+        crosshair.end()
 
-            rectangle_zoomed = QRectF(QPoint(x, y), self.zoom*self.radius*QSizeF(1, 1))
-            path = QPainterPath()
-            path.addEllipse(rectangle_zoomed)
+        rectangle_zoomed = QRectF(QPoint(x, y), self.zoom*self.radius*QSizeF(1, 1))
+        path = QPainterPath()
+        path.addEllipse(rectangle_zoomed)
 
-            painter = QPainter(base_pixmap)
-            painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
-            painter.setClipPath(path, Qt.IntersectClip)
-            painter.drawPixmap(QPoint(x, y), overlay_pixmap)
-            painter.end()
+        painter = QPainter(base_pixmap)
+        painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
+        painter.setClipPath(path, Qt.IntersectClip)
+        painter.drawPixmap(QPoint(x, y), overlay_pixmap)
+        painter.end()
 
-            self.setPixmap(base_pixmap)
+        self.setPixmap(base_pixmap)
 
 
 class QCoord(QVBoxLayout):
