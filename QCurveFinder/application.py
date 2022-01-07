@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, \
+from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, \
     QFileDialog, QMessageBox
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
@@ -11,10 +11,9 @@ from .tools import get_copy_text, CurveFinder
 from .constants import *
 
 from random import randrange
-from typing import List, Tuple
 from shutil import rmtree
+from typing import List
 import numpy as np
-import math as mt
 import cv2
 import os
 
@@ -105,8 +104,9 @@ class QCurveFinder(QWidget):
 
     def browse_for_image(self) -> None:
         """ Method to select an image """
-        self.img_src = str(QFileDialog().getOpenFileName(filter="Images (*.png *.bmp *.jpg)")[0])
-        if self.img_src != "":
+        src = str(QFileDialog().getOpenFileName(filter="Images (*.png *.bmp *.jpg)")[0])
+        if src != "":
+            self.img_src = src
             self.img.source = self.img_src
             self.app_state = AppState.INITIAL  # Return to initial state
 
