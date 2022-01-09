@@ -175,10 +175,10 @@ class QCurveFinder(QWidget):
         radius = self.img_op.spinbox.value()
         cv2.circle(self.mask, (x, y), radius, color, -1)
 
-    def resize_and_rotate(self) -> None:
+    def resize_and_rotate(self) -> None:  # TODO: Dewarp the image
         """ Method to rotate the image after the coordinate are confirmed. """
         img = cv2.imread(self.img_src)
-        rot_matrix = self.curvefinder.get_rotation_matrix(self.coord_prompt.pts)
+        rot_matrix = self.curvefinder.get_rotation_matrix()
         img = cv2.warpAffine(img, rot_matrix, img.shape[1::-1], flags=cv2.INTER_LINEAR)
 
         cv2.imwrite(ROTA_IMG, img)
@@ -191,8 +191,10 @@ class QCurveFinder(QWidget):
         Method to update the axis to a log or a linear and
         make the relation between graph and pixel space.
         """
-        if self.app_state >= AppState.FILTER_CHOICE:
-            self.curvefinder.update_lin_log(self.img_op.x_lin.isChecked(), self.img_op.y_lin.isChecked())
+        ready_to_update = self.app_state >= AppState.FILTER_CHOICE
+        if ready_to_update:
+            self.curvefinder.update_lin_log(self.img_op.x_lin.isChecked(), self.img_op.y_lin.isChecked(),
+                                            ready_to_update)
             self.set_equation()
 
     def set_equation(self, do: bool = True) -> None:
@@ -388,10 +390,9 @@ class QCurveFinder(QWidget):
         elif state == AppState.FILTER_CHOICE:
             """Chose the coord and rotated"""
             self.instruct.textbox.setMarkdown(FILTER_CHOICE_TEXT)
-            self.curvefinder.X1 = self.coord[0]
-            self.curvefinder.X2 = self.coord[1]
-            self.curvefinder.Y1 = self.coord[2]
-            self.curvefinder.Y2 = self.coord[3]
+            self.curvefinder.set_coord_points(self.coord)
+            self.curvefinder.set_axis_points(self.coord_prompt.pts)
+            self.curvefinder.update()
             self.resize_and_rotate()
             self.update_image()
 
@@ -416,8 +417,7 @@ class QCurveFinder(QWidget):
 
             img = cv2.imread(ROTA_IMG)
             for (x, y) in zip(pts_x, pts_y):
-                a, b = self.curvefinder.pixel_to_graph((x, y), self.img_op.x_lin.isChecked(),
-                                                       self.img_op.y_lin.isChecked())
+                a, b = self.curvefinder.pixel_to_graph((x, y))
                 self.pts_final_p.append((x, y))
                 self.pts_final_r.append(np.array([a, b]))
                 cv2.circle(img, (x, y), 2, (0, 0, 255), -1)
