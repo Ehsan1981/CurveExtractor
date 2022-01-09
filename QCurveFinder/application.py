@@ -269,24 +269,30 @@ class QCurveFinder(QWidget):
             img = cv2.cvtColor(cv2.imread(ROTA_IMG), cv2.COLOR_BGR2GRAY)
             tr1, tr2 = [self.img_op.slider1.value(), self.img_op.slider2.value()]
 
-            mode = self.img_op.combo.currentText()
+            mode = self.img_op.combo.currentIndex()
 
-            if mode == "Canny":
+            if mode == ContourOptions.CANNY:
                 img = cv2.Canny(img, tr1, tr2)
-            elif mode == "Global Tresholding":
+
+            elif mode == ContourOptions.GLOBAL:
                 img = cv2.medianBlur(img, 5)
                 ret, img = cv2.threshold(img, tr1, tr2, cv2.THRESH_BINARY)
-            elif mode == "Adaptive Mean Tresholding":
+
+            elif mode == ContourOptions.ADAPTIVE_MEAN:
                 img = cv2.medianBlur(img, 5)
                 img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
-            elif mode == "Adaptive Gausian Tresholding":
+
+            elif mode == ContourOptions.ADAPTIVE_GAUSSIAN:
                 img = cv2.medianBlur(img, 5)
                 img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-            elif mode == "Otsu's Tresholding":
+
+            elif mode == ContourOptions.OTSUS:
                 ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-            elif mode == "Otsu's Tresholding + Gausian Blur":
+
+            elif mode == ContourOptions.OTSUS_GAUSSIAN_BLUR:
                 img = cv2.GaussianBlur(img, (5, 5), 0)
                 ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+
             else:
                 pass
 

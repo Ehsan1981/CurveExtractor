@@ -395,8 +395,6 @@ class QInstructBox(QVBoxLayout):
 class QImageOptions(QVBoxLayout):
     """ Class to create the images options widget """
 
-    options: Tuple[str] = ("Canny", "Global Tresholding", "Adaptive Mean Tresholding", "Adaptive Gausian Tresholding",
-                           "Otsu's Tresholding", "Otsu's Tresholding + Gausian Blur")
     treshs: Tuple[Tuple[bool]] = ((True, True), (True, True), (False, False), (False, False),
                                   (False, False), (False, False), (False, False))
     tresh_ext: Tuple[Tuple[int]] = ((-1000, 1000, -1000, 1000), (0, 255, 0, 255), (0, 1, 0, 1), (0, 1, 0, 1),
@@ -435,13 +433,13 @@ class QImageOptions(QVBoxLayout):
         self.bg_y.addButton(self.y_log)
 
         # Set the combobox
-        self.label_combo: QLabel = QLabel(text="Filter :")
+        self.label_combo: QLabel = QLabel(text="Contour :")
         self.combo: QComboBox = QComboBox()
-        self.combo.addItems(self.options)
+        self.combo.addItems(CONTOUR_OPTIONS_TEXT)
         self.combo.currentTextChanged.connect(self.combo_change)
 
         # Set the first labeled slider
-        self.label1: QLabel = QLabel(text="Tresh. 1")
+        self.label1: QLabel = QLabel(text="Thresh. 1")
         self.slider1: QSlider = QSlider(Qt.Horizontal)
         self.slider1.setMinimum(-1000)
         self.slider1.setMaximum(1000)
@@ -449,7 +447,7 @@ class QImageOptions(QVBoxLayout):
         self.slider1.setTickPosition(QSlider.TicksBelow)
 
         # Set the second labeled slider
-        self.label2: QLabel = QLabel(text="Tresh. 2")
+        self.label2: QLabel = QLabel(text="Thresh. 2")
         self.slider2: QSlider = QSlider(Qt.Horizontal)
         self.slider2.setMinimum(-1000)
         self.slider2.setMaximum(1000)
@@ -505,7 +503,7 @@ class QImageOptions(QVBoxLayout):
 
     def combo_change(self, text) -> None:
         """ Method to change the slider values based on the combobox text """
-        for (i, op) in enumerate(self.options):
+        for (i, op) in enumerate(CONTOUR_OPTIONS_TEXT):
             if text == op:
                 self.slider1.setEnabled(self.treshs[i][0])
                 self.slider1.setValue(0)

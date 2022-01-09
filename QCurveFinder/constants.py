@@ -27,6 +27,15 @@ class CopyOptions(IntEnum):
     POLY1D = 10
 
 
+class ContourOptions(IntEnum):
+    CANNY = 0
+    GLOBAL = 1
+    ADAPTIVE_MEAN = 2
+    ADAPTIVE_GAUSSIAN = 3
+    OTSUS = 4
+    OTSUS_GAUSSIAN_BLUR = 5
+
+
 # APPLICATION DATA
 VER = "2.4"
 AUTHOR = "Bruno-Pier Busque"
@@ -59,9 +68,9 @@ FILTER_CHOICE_TEXT = "Adjust the thresholding so that the curve you want to extr
                      "is clearly visible and free of nearby obstacles.\n\n" \
                      "When done, press `Next`"
 EDGE_SELECTION_TEXT = "Press and hold the left mouse button over the curve you want to extract. All the " \
-                      '"painted" multi-colored points will be extracted.\n\n'\
+                      '"painted" multi-colored points will be extracted.\n\n' \
                       "If you wish to cancel some point that are painted, simply press and hold the right " \
-                      "mouse button over the curve. \n\n"\
+                      "mouse button over the curve. \n\n" \
                       "When you selected all the curve, press `Next` to extract " \
                       "the data points."
 EQUATION_TEXT = ""
@@ -70,3 +79,6 @@ EQUATION_TEXT = ""
 COPY_OPTIONS_TEXT = ("Copy Formula - Matlab", "Copy Formula - Python", "Copy Formula - Markdown",
                      "Copy Points - Matlab", "Copy Points - Python", "Copy Points - NumPy", "Copy Points - CSV",
                      "Copy Coeff. - Matlab", "Copy Coeff. - Python", "Copy Coeff. - NumPy", "Copy Poly1D - NumPy")
+
+CONTOUR_OPTIONS_TEXT = ("Canny", "Global Thresholding", "Adaptive Mean Thresholding", "Adaptive Gaussian Thresholding",
+                        "Otsu's Thresholding", "Otsu's Thresholding + Gaussian Blur")
