@@ -1,17 +1,14 @@
-from zipfile import ZipFile, ZIP_DEFLATED
 from QCurveFinder.constants import VER
 import PyInstaller.__main__
 import argparse
+import platform
 import shutil
+import sys
 import os
 ####################################################
 
 parser = argparse.ArgumentParser(description='Script to build the executable for the curvefinder software.')
 parser.add_argument('-b', '--build', action="store_true", default=False, help="Build the app. [Default : False]")
-parser.add_argument('-z', '--zip', action="store_true", default=False, help="Package the app in a zip file. "
-                                                                            "[Default : False]")
-parser.add_argument('-co', '--copy', action="store_true", default=False, help="Copy the app in this directory. "
-                                                                              "[Default : False]")
 parser.add_argument('-cl', '--clean', action="store_true", default=False, help="Clean the current directory. "
                                                                                "[Default : False]")
 args = parser.parse_args()
@@ -19,30 +16,36 @@ args = parser.parse_args()
 
 # Build the executable
 if args.build:
-    PyInstaller.__main__.run([
-        '--name=CurveFinder',
+    arguments = [
+        'curvefinder.py',
         '--onefile',
         '--noconsole',
-        '--icon=resources/icon.ico',
-        '--add-data=resources/icon.ico;data',
-        '--add-data=resources/placeholder.png;data',
-        '--splash=resources/splash.png',
-        'curvefinder.py'
-    ])
+        '--icon=resources/icon.ico'
+    ]
 
-# Copy the exe file from ./dist/ to current ./
-if args.copy:
-    if os.path.exists('CurveFinder.exe'):
-        os.remove('CurveFinder.exe')
-    shutil.copyfile('dist/CurveFinder.exe', 'CurveFinder.exe')
+    if platform.system() == "Windows":
+        os_name = "win"
+        separator = ';'
+        splash = True
+    elif platform.system() == "Linux":
+        os_name = "linux"
+        separator = ':'
+        splash = True
+    elif platform.system() == "Darwin":
+        os_name = "macos"
+        separator = ':'
+        splash = False
+    else:
+        sys.exit(0)
 
-# Create the distribution zip file
-if args.zip:
-    filename = f'curvefinder_v{VER}.zip'
-    if os.path.exists(filename):
-        os.remove(filename)
-    with ZipFile(filename, 'w', compression=ZIP_DEFLATED, compresslevel=9) as zipfile:
-        zipfile.write('dist/CurveFinder.exe', 'CurveFinder.exe')
+    arguments.append(f'--name=CurveFinder_v{VER}_{os_name}')
+    arguments.append(f'--add-data=resources/icon.ico{separator}data')
+    arguments.append(f'--add-data=resources/placeholder.png{separator}data')
+
+    if splash:
+        arguments.append('--splash=resources/splash.png')
+
+    PyInstaller.__main__.run(arguments)
 
 # Remove dist and build folder
 if args.clean:

@@ -1,5 +1,4 @@
 - Dark stylesheet
 - Evaluate function at the end
-- Add github action to build the exe on many os
 - Remove the need to save the image each times
 - Change the way the equation with log are displayed to make it easier to verify
