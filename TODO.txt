@@ -1,4 +1,5 @@
 - Dark stylesheet
 - Evaluate function at the end
 - Remove the need to save the image each times
-- Change the way the equation with log are displayed to make it easier to verify
+- Update the README
+- Test the log axis function
