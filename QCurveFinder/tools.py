@@ -152,9 +152,9 @@ class CurveFinder:
                     self.angle = mt.atan(-1/self.slope)
 
 
-def get_copy_text(mode: int, var: str, islog: List[bool], coefs: list, order: int,
-                  pts: List[ndarray]) -> Union[str, None]:
+def get_copy_text(mode: CopyOptions, var: str, islog: List[bool], coefs: list, pts: List[ndarray]) -> Union[str, None]:
     a_log, b_log = islog
+    order = len(coefs) - 1
     equation = ""
 
     if mode == CopyOptions.EQUATION_MATLAB:
@@ -162,13 +162,16 @@ def get_copy_text(mode: int, var: str, islog: List[bool], coefs: list, order: in
             var = f"(log10({var}))"
         if b_log:
             equation += "10.^("
-        for (i, c) in enumerate(coefs):
-            if order - i > 1:
-                equation += f"+ {c}*{var}.^{order - i} "
-            elif order - i == 1:
-                equation += f"+ {c}*{var} "
+        for c, o in zip(coefs, range(order, 0, -1)):
+            if o == order:
+                equation += f"{c}"
             else:
-                equation += f"+ {c}"
+                equation += f" {'-' if c < 0 else '+'} {abs(c)}"
+
+            if o > 1:
+                equation += f"*{var}.^{o}"
+            elif o == 1:
+                equation += f"*{var}"
         if b_log:
             equation += ")"
 
@@ -179,13 +182,16 @@ def get_copy_text(mode: int, var: str, islog: List[bool], coefs: list, order: in
             var = f"(np.log10({var}))"
         if b_log:
             equation += "np.power(10, "
-        for (i, c) in enumerate(coefs):
-            if order - i > 1:
-                equation += f"+ {c}*{var}**({order - i}) "
-            elif order - i == 1:
-                equation += f"+ {c}*{var} "
+        for c, o in zip(coefs, range(order, 0, -1)):
+            if o == order:
+                equation += f"{c}"
             else:
-                equation += f"+ {c}"
+                equation += f" {'-' if c < 0 else '+'} {abs(c)}"
+
+            if o > 1:
+                equation += f"*{var}**({o})"
+            elif o == 1:
+                equation += f"*{var}"
         if b_log:
             equation += ")"
 
@@ -196,15 +202,41 @@ def get_copy_text(mode: int, var: str, islog: List[bool], coefs: list, order: in
             var = f"(log<sub>10</sub>{var})"
         if b_log:
             equation += "10^("
-        for (i, c) in enumerate(coefs):
-            if order - i > 1:
-                equation += f"{c:+.2e} {var}<sup>{order - i}</sup> "
-            elif order - i == 1:
-                equation += f"{c:+.2e} {var} "
+        for c, o in zip(coefs, range(order, 0, -1)):
+            if o == order:
+                equation += f"{c:0.2e}"
             else:
-                equation += f"{c:+.2e}"
+                equation += f" {'-' if c < 0 else '+'} {abs(c):0.2e}"
+
+            if o > 1:
+                equation += f"{var}<sup>{o}</sup>"
+            elif o == 1:
+                equation += f"{var}"
         if b_log:
             equation += ")"
+
+        return equation
+
+    elif mode == CopyOptions.EQUATION_LATEX:
+        equation += "$"
+        if a_log:
+            var = f"(\log_{{10}}{var})"
+        if b_log:
+            equation += "10^{"
+        for c, o in zip(coefs, range(order, 0, -1)):
+            if o == order:
+                equation += f"{c:0.1f}"
+            else:
+                equation += f" {'-' if c < 0 else '+'} {abs(c):0.1f}"
+
+            if o > 1:
+                equation += f"x^{{{o}}}"
+            elif o == 1:
+                equation += "x"
+        if b_log:
+            equation += ")"
+
+        equation += "$"
 
         return equation
 

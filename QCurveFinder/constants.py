@@ -17,14 +17,15 @@ class CopyOptions(IntEnum):
     EQUATION_MATLAB = 0
     EQUATION_PYTHON = 1
     EQUATION_MARKDOWN = 2
-    POINTS_MATLAB = 3
-    POINTS_PYTHON = 4
-    POINTS_NUMPY = 5
-    POINTS_CSV = 6
-    COEFFS_MATLAB = 7
-    COEFFS_PYTHON = 8
-    COEFFS_NUMPY = 9
-    POLY1D = 10
+    EQUATION_LATEX = 3
+    POINTS_MATLAB = 4
+    POINTS_PYTHON = 5
+    POINTS_NUMPY = 6
+    POINTS_CSV = 7
+    COEFFS_MATLAB = 8
+    COEFFS_PYTHON = 9
+    COEFFS_NUMPY = 10
+    POLY1D = 11
 
 
 class ContourOptions(IntEnum):
@@ -76,9 +77,9 @@ EDGE_SELECTION_TEXT = "Press and hold the left mouse button over the curve you w
 EQUATION_TEXT = ""
 
 # COPY OPTIONS
-COPY_OPTIONS_TEXT = ("Copy Formula - Matlab", "Copy Formula - Python", "Copy Formula - Markdown",
-                     "Copy Points - Matlab", "Copy Points - Python", "Copy Points - NumPy", "Copy Points - CSV",
-                     "Copy Coeff. - Matlab", "Copy Coeff. - Python", "Copy Coeff. - NumPy", "Copy Poly1D - NumPy")
+COPY_OPTIONS_TEXT = ("Equation - Matlab", "Equation - Python", "Equation - Markdown", "Equation - Latex",
+                     "Points - Matlab", "Points - Python", "Points - NumPy", "Points - CSV",
+                     "Coeff. - Matlab", "Coeff. - Python", "Coeff. - NumPy", "Poly1D - NumPy")
 
 CONTOUR_OPTIONS_TEXT = ("Canny", "Global Thresholding", "Adaptive Mean Thresholding", "Adaptive Gaussian Thresholding",
                         "Otsu's Thresholding", "Otsu's Thresholding + Gaussian Blur")

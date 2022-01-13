@@ -252,8 +252,7 @@ class QCurveFinder(QWidget):
 
             self.pts_eval_r = eval_pts
 
-            equation = get_copy_text(CopyOptions.EQUATION_MARKDOWN, self.var, self.islog, self.coef,
-                                     self.order, self.pts_final_r)
+            equation = get_copy_text(CopyOptions.EQUATION_MARKDOWN, self.var, self.islog, self.coef, self.pts_final_r)
 
             text = "The equation for this curve is :\n\n" \
                    f"{equation}\n\n" \
@@ -337,8 +336,7 @@ class QCurveFinder(QWidget):
 
     def copy_text(self) -> None:
         """ Method to copy certain data """
-        text = get_copy_text(self.instruct.combo.currentIndex(), self.var, self.islog, self.coef,
-                             self.order, self.pts_final_r)
+        text = get_copy_text(self.instruct.combo.currentIndex(), self.var, self.islog, self.coef, self.pts_final_r)
 
         if text is not None:
             QApplication.clipboard().setText(text)
