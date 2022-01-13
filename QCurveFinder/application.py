@@ -430,7 +430,8 @@ class QCurveFinder(QWidget):
             self.img.source = SELE_IMG
             self.img.draw_points(self.curvefinder.get_points())
             self.instruct.setEnabled(True)
-            self.img_op.is_brush = False
+            if self.img_op.is_brush:
+                self.img_op.is_brush = False
             self.set_equation()
             self.but_next.setText("Plot")
 
