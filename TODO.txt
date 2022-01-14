@@ -1,5 +1,5 @@
 - Dark stylesheet
-- Evaluate function at the end
+- Evaluate function at the end (button + popup)
 - Remove the need to save the image each times
 - Update the README
 - Test the log axis function
