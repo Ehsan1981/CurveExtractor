@@ -157,7 +157,7 @@ def get_copy_text(mode: CopyOptions, var: str, coefs: list, pts: List[ndarray]) 
     equation = ""
 
     if mode == CopyOptions.EQUATION_MATLAB:
-        for c, o in zip(coefs, range(order, 0, -1)):
+        for c, o in zip(coefs, range(order, -1, -1)):
             if o == order:
                 equation += f"{c}"
             else:
@@ -171,7 +171,7 @@ def get_copy_text(mode: CopyOptions, var: str, coefs: list, pts: List[ndarray]) 
         return equation
 
     elif mode == CopyOptions.EQUATION_PYTHON:
-        for c, o in zip(coefs, range(order, 0, -1)):
+        for c, o in zip(coefs, range(order, -1, -1)):
             if o == order:
                 equation += f"{c}"
             else:
@@ -185,7 +185,7 @@ def get_copy_text(mode: CopyOptions, var: str, coefs: list, pts: List[ndarray]) 
         return equation
 
     elif mode == CopyOptions.EQUATION_MARKDOWN:
-        for c, o in zip(coefs, range(order, 0, -1)):
+        for c, o in zip(coefs, range(order, -1, -1)):
             if o == order:
                 equation += f"{c:0.2e}"
             else:
@@ -199,7 +199,7 @@ def get_copy_text(mode: CopyOptions, var: str, coefs: list, pts: List[ndarray]) 
         return equation
 
     elif mode == CopyOptions.EQUATION_LATEX:
-        for c, o in zip(coefs, range(order, 0, -1)):
+        for c, o in zip(coefs, range(order, -1, -1)):
             if o == order:
                 equation += f"{c:0.1f}"
             else:
