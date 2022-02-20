@@ -41,8 +41,8 @@ class ContourOptions(IntEnum):
 VER = "2.4"
 AUTHOR = "Bruno-Pier Busque"
 
-APP_W = 1500
-APP_H = 750
+APP_WIDTH = 1500
+APP_HEIGHT = 750
 
 MAX_IMG_W = 1200
 MAX_IMG_H = 730

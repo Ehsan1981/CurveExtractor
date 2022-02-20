@@ -40,8 +40,8 @@ class QCurveFinder(QWidget):
 
         self.setWindowTitle(f"CurveFinder v{VER}")
         self.setWindowIcon(QIcon(ICON_PATH))
-        self.setFixedWidth(APP_W)
-        self.setFixedHeight(APP_H)
+        self.setBaseSize(APP_WIDTH, APP_HEIGHT)
+        self.setMinimumSize(APP_WIDTH, APP_HEIGHT)
 
         # Create a temporary and data folder
         if not os.path.exists(DATA_PATH):
