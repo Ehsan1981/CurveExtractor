@@ -48,10 +48,10 @@ MAX_IMG_W = 1200
 MAX_IMG_H = 730
 
 # PATHS
-DATA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data/"))
-ICON_PATH = os.path.join(DATA_PATH, "icon.ico")
-PH_IMAGE_PATH = os.path.join(DATA_PATH, "placeholder.png")
-TEMP_PATH = os.path.join(DATA_PATH, "temp/")
+RESOURCES_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../resources/"))
+ICON_PATH = os.path.join(RESOURCES_PATH, "icon.ico")
+PH_IMAGE_PATH = os.path.join(RESOURCES_PATH, "placeholder.png")
+TEMP_PATH = os.path.join(RESOURCES_PATH, "temp/")
 ORIG_IMG = os.path.join(TEMP_PATH, "original_img.png")
 COOR_IMG = os.path.join(TEMP_PATH, "coordinate_img.png")  # TODO: Not used anymore
 ROTA_IMG = os.path.join(TEMP_PATH, "rotated_img.png")

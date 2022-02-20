@@ -38,8 +38,8 @@ if args.build:
         '--noconsole',
         '--icon=resources/icon.ico',
         f'--name=CurveFinder_v{VER}_{os_name}',
-        f'--add-data=resources/icon.ico{separator}data',
-        f'--add-data=resources/placeholder.png{separator}data'
+        f'--add-data=resources/icon.ico{separator}resources',
+        f'--add-data=resources/placeholder.png{separator}resources'
     ]
 
     if splash:

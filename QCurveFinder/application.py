@@ -44,8 +44,8 @@ class QCurveFinder(QWidget):
         self.setMinimumSize(APP_WIDTH, APP_HEIGHT)
 
         # Create a temporary and data folder
-        if not os.path.exists(DATA_PATH):
-            os.mkdir(DATA_PATH)
+        if not os.path.exists(RESOURCES_PATH):
+            os.mkdir(RESOURCES_PATH)
         if not os.path.exists(TEMP_PATH):
             os.mkdir(TEMP_PATH)
 
