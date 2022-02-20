@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+- Changed the icon.
+- Added a graph generator for testing purposes.
+- Added a magnifying glass to select the coordinate.
+- Added a way to reduce the graph size.
+- Fixed a precision error while selecting coordinates.
+- Changed the rendering of the mask layer in the curve selection section.
+- Fixed the rendering of the points after the mask is painted.
+- Fixed bugs in the curve extraction.
+- Added a GitHub Action to test the building of the file.
+- Added the ability to resize the app.
+
 ## [2.3] - 2022-01-05
 
 - Removed the need for the data folder, they are now packaged inside the executable.
