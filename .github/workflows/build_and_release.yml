@@ -1,11 +1,6 @@
 name: CurveFinder build and release
 
-on:
-  push:
-    branches:
-      - 'main'
-    tags:
-      - 'v*'
+on: [push]
 
 jobs:
   build:
@@ -67,7 +62,11 @@ jobs:
           prerelease: false
           release_name: CurveFinder ${{ github.ref_name }}
           tag_name: ${{ github.ref }}
+<<<<<<< HEAD
           body: The changes for ${{ github.ref_name }} are listed in the [changelog](./CHANGELOG.md).
+=======
+          body_path: ./CHANGELOG.md
+>>>>>>> origin/main
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
