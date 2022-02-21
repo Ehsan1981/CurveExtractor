@@ -1,11 +1,6 @@
 name: CurveFinder build and release
 
-on:
-  push:
-    branches:
-      - 'main'
-    tags:
-      - 'v*'
+on: [push]
 
 jobs:
   build:
@@ -82,8 +77,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./CurveFinder_v*.*_win.exe
-          asset_name: CurveFinder_win.exe
+          asset_path: CurveFinder_${{ github.ref_name }}_win.exe
+          asset_name: CurveFinder_${{ github.ref_name }}_win.exe
           asset_content_type: application/exe
 
       - name: Upload the release asset for Linux
@@ -92,8 +87,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./CurveFinder_v*.*_linux
-          asset_name: CurveFinder_linux
+          asset_path: CurveFinder_${{ github.ref_name }}_linux
+          asset_name: CurveFinder_${{ github.ref_name }}_linux
           asset_content_type: application/octet-stream
 
       - name: Upload the release asset for MacOS
@@ -102,6 +97,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./CurveFinder_v*.*_macos
-          asset_name: CurveFinder_macos
+          asset_path: CurveFinder_${{ github.ref_name }}_macos
+          asset_name: CurveFinder_${{ github.ref_name }}_macos
           asset_content_type: application/octet-stream
