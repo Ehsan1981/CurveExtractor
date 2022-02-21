@@ -1,0 +1,102 @@
+name: CurveFinder build and release
+
+on: [push]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build the executable
+        run: python build.py -b
+
+      - name: Upload executable for Windows
+        if: ${{ runner.os == 'Windows' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: bin
+          path: './dist/CurveFinder_v*.*_win.exe'
+
+      - name: Upload executable for Linux
+        if: ${{ runner.os == 'Linux' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: bin
+          path: './dist/CurveFinder_v*.*_linux'
+
+      - name: Upload executable for Mac
+        if: ${{ runner.os == 'macOS' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: bin
+          path: './dist/CurveFinder_v*.*_macos'
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Creating the release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          draft: false
+          prerelease: false
+          release_name: CurveFinder ${{ github.ref_name }}
+          tag_name: ${{ github.ref }}
+          body_path: ./CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Download the artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: bin
+
+      - name: Upload the release asset for Windows
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./CurveFinder_v*.*_win.exe
+          asset_name: CurveFinder_win.exe
+          asset_content_type: application/exe
+
+      - name: Upload the release asset for Linux
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./CurveFinder_v*.*_linux
+          asset_name: CurveFinder_linux
+          asset_content_type: application/octet-stream
+
+      - name: Upload the release asset for MacOS
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./CurveFinder_v*.*_macos
+          asset_name: CurveFinder_macos
+          asset_content_type: application/octet-stream
