@@ -152,7 +152,10 @@ class QImage(QLabel):
         overlay_pixmap = base_pixmap.copy(rectangle).scaledToWidth(self.zoom*self.radius, Qt.SmoothTransformation)
 
         crosshair = QPainter(overlay_pixmap)
+        crosshair.setPen(QPen(Qt.white, 3))
+        crosshair.drawEllipse(overlay_pixmap.rect().center(), 3, 3)
         crosshair.setPen(QPen(Qt.black, 3))
+        crosshair.drawEllipse(overlay_pixmap.rect().center(), 1, 1)
         crosshair.drawPoint(overlay_pixmap.rect().center())
         crosshair.drawEllipse(overlay_pixmap.rect())
         crosshair.end()

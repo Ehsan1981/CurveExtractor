@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed bugs in the curve extraction.
 - Added a GitHub Action to test the building of the file.
 - Added the ability to resize the app.
+- Changed the crosshair
 
 ## [2.3] - 2022-01-05
 
