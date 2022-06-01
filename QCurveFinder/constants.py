@@ -18,14 +18,16 @@ class CopyOptions(IntEnum):
     EQUATION_PYTHON = 1
     EQUATION_MARKDOWN = 2
     EQUATION_LATEX = 3
-    POINTS_MATLAB = 4
-    POINTS_PYTHON = 5
-    POINTS_NUMPY = 6
-    POINTS_CSV = 7
-    COEFFS_MATLAB = 8
-    COEFFS_PYTHON = 9
-    COEFFS_NUMPY = 10
-    POLY1D = 11
+    EQUATION_EXCEL_LAMBDA_POINT = 4
+    EQUATION_EXCEL_LAMBDA_COMMA = 5
+    POINTS_MATLAB = 6
+    POINTS_PYTHON = 7
+    POINTS_NUMPY = 8
+    POINTS_CSV = 9
+    COEFFS_MATLAB = 10
+    COEFFS_PYTHON = 11
+    COEFFS_NUMPY = 12
+    POLY1D = 13
 
 
 class ContourOptions(IntEnum):
@@ -78,6 +80,7 @@ EQUATION_TEXT = ""
 
 # COPY OPTIONS
 COPY_OPTIONS_TEXT = ("Equation - Matlab", "Equation - Python", "Equation - Markdown", "Equation - Latex",
+                     "Equation - Excel lambda (point)", "Equation - Excel lambda (comma)",
                      "Points - Matlab", "Points - Python", "Points - NumPy", "Points - CSV",
                      "Coeff. - Matlab", "Coeff. - Python", "Coeff. - NumPy", "Poly1D - NumPy")
 

@@ -214,6 +214,39 @@ def get_copy_text(mode: CopyOptions, var: str, coefs: list, pts: List[ndarray]) 
 
         return equation
 
+    elif mode == CopyOptions.EQUATION_EXCEL_LAMBDA_POINT:
+        equation += f"=LAMBDA([{var}], "
+        for c, o in zip(coefs, range(order, -1, -1)):
+            if o == order:
+                equation += f"{c}"
+            else:
+                equation += f" {'-' if c < 0 else '+'} {abs(c)}"
+
+            if o > 1:
+                equation += f"*{var}^({o})"
+            elif o == 1:
+                equation += f"*{var}"
+
+        equation += ")"
+        return equation
+
+    elif mode == CopyOptions.EQUATION_EXCEL_LAMBDA_COMMA:
+        equation += f"=LAMBDA([{var}]; "
+        for c, o in zip(coefs, range(order, -1, -1)):
+            if o == order:
+                equation += f"{c}"
+            else:
+                equation += f" {'-' if c < 0 else '+'} {abs(c)}"
+
+            if o > 1:
+                equation += f"*{var}^({o})"
+            elif o == 1:
+                equation += f"*{var}"
+
+        equation += ")"
+        equation = equation.replace(".", ",")
+        return equation
+
     elif mode == CopyOptions.POINTS_MATLAB:
         text = "x = ["
         x_r = []
