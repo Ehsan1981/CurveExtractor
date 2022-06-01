@@ -10,6 +10,8 @@ Simple app to let you find the equations from a graph
 - Run with the venv `build.py`
 
 ## Next steps
+- [ ] Add an excel equation
+- [ ] Release v2.4
 - [ ] Dark stylesheet
 - [ ] Evaluate function at the end (button + popup)
 - [ ] Remove the need to save the image each times
