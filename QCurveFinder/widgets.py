@@ -8,6 +8,41 @@ from typing import List, Tuple
 from .constants import *
 
 
+class QNewLabel(QLabel):
+
+    def delete(self) -> None:
+        self.setText("")
+        self.setParent(None)
+
+
+class QCoordBox(QHBoxLayout):
+    """ Subclass for the a single coordinate box """
+
+    def __init__(self, coord_label: str) -> None:
+        """ Initialise the single coordinate input box """
+        super().__init__()
+
+        # Set the widgets
+        self.coord_label: str = coord_label
+        self.label: QNewLabel = QNewLabel(text=f"{coord_label} :")
+        self.line: QLineEdit = QLineEdit()
+        self.line.setPlaceholderText(f"Enter coord. for {coord_label}...")
+        self.check: QCheckBox = QCheckBox(text=f"{coord_label} placed")
+        self.check.setEnabled(False)
+
+        # Create the layout
+        self.addWidget(self.label)
+        self.addWidget(self.line)
+        self.addWidget(self.check)
+
+    def delete(self) -> None:
+        self.label.delete()
+        self.line.setText("")
+        self.line.setParent(None)
+        self.check.setParent(None)
+        self.setParent(None)
+
+
 class QImage(QLabel):
     """ The class for the big image box """
 
@@ -248,33 +283,72 @@ class QImage(QLabel):
         self.base_pixmap = self._source.copy()
 
 
-class QCoord(QVBoxLayout):
+class QInstructBox(QVBoxLayout):
+    """ Class for the instruction box widget """
+
+    def __init__(self) -> None:
+        """ Initialise the Instruction box """
+        super().__init__()
+
+        # Create the  widgets
+        self.label = QNewLabel(text="Instructions :")
+        self.label.setFont(QFont("Helvetica", 14, QFont.Bold))
+
+        self.textbox: QTextBrowser = QTextBrowser()
+        self.textbox.setFont(QFont("Calibri", 12, QFont.Bold))
+
+        # Create the layout
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.label)
+        vbox.addWidget(self.textbox)
+
+        self.addLayout(vbox)
+
+
+class QOptionsTemplate(QVBoxLayout):
+
+    def __init__(self, main_label: str) -> None:
+        super().__init__()
+
+        # Create the  widgets
+        self.main_label = QNewLabel(main_label)
+        self.main_label.setFont(QFont("Helvetica", 14, QFont.Bold))
+
+        # Create the layout
+        self.vbox = QVBoxLayout()
+        self.vbox.addWidget(self.main_label)
+
+        self.addLayout(self.vbox)
+
+    def delete(self) -> None:
+        self.main_label.delete()
+
+        self.setParent(None)
+
+
+class QCoordOption(QOptionsTemplate):
     """ The class for the coordinate inputs box """
 
-    pts_labels: Tuple[str] = ("X1", "X2", "Y1", "Y2")
+    pts_labels: Tuple[str] = (r"X_1", r"X_2", r"Y_1", r"Y_2")
 
     def __init__(self) -> None:
         """ Initialise the coordinate inputs """
-        super().__init__()
+        super().__init__("Coordinates :")
 
         # Init the pts and them characteristics
         self.pts: List[Tuple[int, int]] = [(-1, -1)]*4
 
-        # Create the widget
-        self.label = QLabel(text="Coordinates :")
-        self.label.setFont(QFont("Helvetica", 10, QFont.Bold))
-
-        self.x1_coord = self.QCoordBox(self.pts_labels[0])
-        self.x2_coord = self.QCoordBox(self.pts_labels[1])
-        self.y1_coord = self.QCoordBox(self.pts_labels[2])
-        self.y2_coord = self.QCoordBox(self.pts_labels[3])
+        # Create the widgets
+        self.x1_coord: QCoordBox = QCoordBox(self.pts_labels[0])
+        self.x2_coord: QCoordBox = QCoordBox(self.pts_labels[1])
+        self.y1_coord: QCoordBox = QCoordBox(self.pts_labels[2])
+        self.y2_coord: QCoordBox = QCoordBox(self.pts_labels[3])
 
         # Create the layout
-        self.addWidget(self.label)
-        self.addLayout(self.x1_coord)
-        self.addLayout(self.x2_coord)
-        self.addLayout(self.y1_coord)
-        self.addLayout(self.y2_coord)
+        self.vbox.addLayout(self.x1_coord)
+        self.vbox.addLayout(self.x2_coord)
+        self.vbox.addLayout(self.y1_coord)
+        self.vbox.addLayout(self.y2_coord)
 
         # Initialise the values
         self.initValues()
@@ -338,111 +412,31 @@ class QCoord(QVBoxLayout):
         if not status:
             self.pts[3] = (-1, -1)
 
-    class QCoordBox(QHBoxLayout):
-        """ Subclass for the a single coordinate box """
-
-        def __init__(self, coord_label: str) -> None:
-            """ Initialise the single coordinate input box """
-            super().__init__()
-
-            # Set the widgets
-            self.coord_label: str = coord_label
-            self.label: QLabel = QLabel(text=f"{coord_label} :")
-            self.line: QLineEdit = QLineEdit()
-            self.line.setPlaceholderText(f"Enter coord. for {coord_label}...")
-            self.check: QCheckBox = QCheckBox(text=f"{coord_label} placed")
-            self.check.setEnabled(False)
-
-            # Create the layout
-            self.addWidget(self.label)
-            self.addWidget(self.line)
-            self.addWidget(self.check)
+    def delete(self) -> None:
+        self.x1_coord.delete()
+        self.x2_coord.delete()
+        self.y1_coord.delete()
+        self.y2_coord.delete()
+        super().delete()
 
 
-class QInstructBox(QVBoxLayout):
-    """ Class for the instruction box widget """
-
-    def __init__(self) -> None:
-        """ Initialise the Instruction box """
-        super().__init__()
-
-        # Create the  widgets
-        self.label = QLabel(text="Instructions :")
-        self.label.setFont(QFont("Helvetica", 14, QFont.Bold))
-
-        self.combo: QComboBox = QComboBox()
-        self.combo.addItems(COPY_OPTIONS_TEXT)
-        self.but_copy: QPushButton = QPushButton(text="Copy")
-
-        self.textbox: QTextBrowser = QTextBrowser()
-        self.textbox.setFont(QFont("Calibri", 12, QFont.Bold))
-
-        # Create the layout
-        hbox = QHBoxLayout()
-        hbox.addWidget(self.combo, stretch=1)
-        hbox.addWidget(self.but_copy)
-
-        vbox = QVBoxLayout()
-        vbox.addWidget(self.label)
-        vbox.addWidget(self.textbox)
-        vbox.addLayout(hbox)
-
-        self.addLayout(vbox)
-
-    def setEnabled(self, a0: bool) -> None:
-        """ Method to enable or disable the copy button and combobox """
-        self.combo.setEnabled(a0)
-        self.but_copy.setEnabled(a0)
-
-
-class QImageOptions(QVBoxLayout):
-    """ Class to create the images options widget """
-
+class QFilterOption(QOptionsTemplate):
     treshs: Tuple[Tuple[bool]] = ((True, True), (True, True), (False, False), (False, False),
                                   (False, False), (False, False), (False, False))
     tresh_ext: Tuple[Tuple[int]] = ((-1000, 1000, -1000, 1000), (0, 255, 0, 255), (0, 1, 0, 1), (0, 1, 0, 1),
                                     (0, 1, 0, 1), (0, 1, 0, 1), (0, 1, 0, 1))
 
     def __init__(self) -> None:
-        """ Initialise the image options """
-        super().__init__()
-
-        # Set the radios
-        self.label = QLabel(text="Image/graph options :")
-        self.label.setFont(QFont("Helvetica", 10, QFont.Bold))
-
-        self.label0: QLabel = QLabel(text="Wanted equation :")
-        self.bg_formula: QButtonGroup = QButtonGroup()
-        self.y_from_x: QRadioButton = QRadioButton(text="y = f(x)")
-        self.y_from_x.setChecked(True)
-        self.x_from_y: QRadioButton = QRadioButton(text="x = f(y)")
-        self.bg_formula.addButton(self.y_from_x)
-        self.bg_formula.addButton(self.x_from_y)
-
-        self.labelx: QLabel = QLabel(text="X-axis is :")
-        self.bg_x: QButtonGroup = QButtonGroup()
-        self.x_lin: QRadioButton = QRadioButton(text="Lin.")
-        self.x_lin.setChecked(True)
-        self.x_log: QRadioButton = QRadioButton(text="Log.")
-        self.bg_x.addButton(self.x_lin)
-        self.bg_x.addButton(self.x_log)
-
-        self.labely: QLabel = QLabel(text="Y-axis is :")
-        self.bg_y: QButtonGroup = QButtonGroup()
-        self.y_lin: QRadioButton = QRadioButton(text="Lin.")
-        self.y_lin.setChecked(True)
-        self.y_log: QRadioButton = QRadioButton(text="Log.")
-        self.bg_y.addButton(self.y_lin)
-        self.bg_y.addButton(self.y_log)
+        super().__init__("Filter options :")
 
         # Set the combobox
-        self.label_combo: QLabel = QLabel(text="Contour :")
+        self.label_combo: QNewLabel = QNewLabel(text="Contour :")
         self.combo: QComboBox = QComboBox()
         self.combo.addItems(CONTOUR_OPTIONS_TEXT)
         self.combo.currentTextChanged.connect(self.combo_change)
 
         # Set the first labeled slider
-        self.label1: QLabel = QLabel(text="Thresh. 1")
+        self.label1: QNewLabel = QNewLabel(text="Thresh. 1 :")
         self.slider1: QSlider = QSlider(Qt.Horizontal)
         self.slider1.setMinimum(-1000)
         self.slider1.setMaximum(1000)
@@ -450,59 +444,20 @@ class QImageOptions(QVBoxLayout):
         self.slider1.setTickPosition(QSlider.TicksBelow)
 
         # Set the second labeled slider
-        self.label2: QLabel = QLabel(text="Thresh. 2")
+        self.label2: QNewLabel = QNewLabel(text="Thresh. 2 :")
         self.slider2: QSlider = QSlider(Qt.Horizontal)
         self.slider2.setMinimum(-1000)
         self.slider2.setMaximum(1000)
         self.slider2.setTickInterval(100)
         self.slider2.setTickPosition(QSlider.TicksBelow)
 
-        # Set the brush/order spinbox
-        self.label3: QLabel = QLabel()
-        self.spinbox: QSpinBox = QSpinBox()
-        self.spinbox.setMinimum(0)
-        self.is_brush: bool = True
-
-        # Create the layout
-        hb0 = QHBoxLayout()
-        hb0.addWidget(self.label0)
-        hb0.addStretch(1)
-        hb0.addWidget(self.y_from_x)
-        hb0.addWidget(self.x_from_y)
-
-        hb1 = QHBoxLayout()
-        hb1.addWidget(self.labelx)
-        hb1.addWidget(self.x_lin)
-        hb1.addWidget(self.x_log)
-        hb1.addStretch(1)
-        hb1.addWidget(self.labely)
-        hb1.addWidget(self.y_lin)
-        hb1.addWidget(self.y_log)
-
-        hbcombo = QHBoxLayout()
-        hbcombo.addWidget(self.label_combo)
-        hbcombo.addWidget(self.combo, stretch=4)
-
-        hb2 = QHBoxLayout()
-        hb2.addWidget(self.label1)
-        hb2.addWidget(self.slider1)
-
-        hb3 = QHBoxLayout()
-        hb3.addWidget(self.label2)
-        hb3.addWidget(self.slider2)
-
-        hb4 = QHBoxLayout()
-        hb4.addWidget(self.label3)
-        hb4.addWidget(self.spinbox)
-
-        # Set the final layout
-        self.addWidget(self.label)
-        self.addLayout(hb0)
-        self.addLayout(hb1)
-        self.addLayout(hbcombo)
-        self.addLayout(hb2)
-        self.addLayout(hb3)
-        self.addLayout(hb4)
+        # Set the layout
+        self.vbox.addWidget(self.label_combo)
+        self.vbox.addWidget(self.combo)
+        self.vbox.addWidget(self.label1)
+        self.vbox.addWidget(self.slider1)
+        self.vbox.addWidget(self.label2)
+        self.vbox.addWidget(self.slider2)
 
     def combo_change(self, text) -> None:
         """ Method to change the slider values based on the combobox text """
@@ -517,26 +472,129 @@ class QImageOptions(QVBoxLayout):
                 self.slider2.setMinimum(self.tresh_ext[i][2])
                 self.slider2.setMaximum(self.tresh_ext[i][3])
 
-    def setEnabled(self, a0: bool) -> None:
-        """ Method to disable or enable the combobox and sliders """
-        self.combo.setEnabled(a0)
-        self.slider1.setEnabled(a0)
-        self.slider2.setEnabled(a0)
+    def delete(self) -> None:
+        self.label_combo.delete()
+        self.combo.setParent(None)
+        self.label1.delete()
+        self.slider1.setParent(None)
+        self.label2.delete()
+        self.slider2.setParent(None)
+        super().delete()
 
-    @property
-    def is_brush(self):
-        return self._is_brush
 
-    @is_brush.setter
-    def is_brush(self, status: bool):
-        self._is_brush = status
-        if status:
-            self.label3.setText("Brush size :")
-            self.spinbox.setMaximum(50)
-            self.spinbox.setSingleStep(5)
-            self.spinbox.setValue(5)
-        else:
-            self.label3.setText("Fit order :")
-            self.spinbox.setMaximum(15)
-            self.spinbox.setSingleStep(1)
-            self.spinbox.setValue(5)
+class QEdgeSelectionOption(QOptionsTemplate):
+
+    def __init__(self) -> None:
+        super().__init__("Edge selection options :")
+
+        # Create the widgets
+        self.label: QNewLabel = QNewLabel("Brush size :")
+        self.spinbox: QSpinBox = QSpinBox()
+        self.spinbox.setRange(0, 50)
+        self.spinbox.setSingleStep(5)
+        self.spinbox.setValue(5)
+
+        # Set the layout
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.label)
+        hbox.addWidget(self.spinbox)
+        self.vbox.addLayout(hbox)
+
+    def delete(self) -> None:
+        self.label.delete()
+        self.spinbox.setParent(None)
+        super().delete()
+
+
+class QEvaluationOptions(QOptionsTemplate):
+
+    def __init__(self) -> None:
+        super().__init__("Evaluation options :")
+
+        # Create the widgets
+        self.combo: QComboBox = QComboBox()
+        self.combo.addItems(COPY_OPTIONS_TEXT)
+        self.but_copy: QPushButton = QPushButton(text="Copy")
+
+        self.label1: QNewLabel = QNewLabel(text="Wanted equation :")
+        self.bg_formula: QButtonGroup = QButtonGroup()
+        self.y_from_x: QRadioButton = QRadioButton(text="y = f(x)")
+        self.y_from_x.setChecked(True)
+        self.x_from_y: QRadioButton = QRadioButton(text="x = f(y)")
+        self.bg_formula.addButton(self.y_from_x)
+        self.bg_formula.addButton(self.x_from_y)
+
+        self.labelx: QNewLabel = QNewLabel(text="X-axis is :")
+        self.bg_x: QButtonGroup = QButtonGroup()
+        self.x_lin: QRadioButton = QRadioButton(text="Lin.")
+        self.x_lin.setChecked(True)
+        self.x_log: QRadioButton = QRadioButton(text="Log.")
+        self.bg_x.addButton(self.x_lin)
+        self.bg_x.addButton(self.x_log)
+
+        self.labely: QNewLabel = QNewLabel(text="Y-axis is :")
+        self.bg_y: QButtonGroup = QButtonGroup()
+        self.y_lin: QRadioButton = QRadioButton(text="Lin.")
+        self.y_lin.setChecked(True)
+        self.y_log: QRadioButton = QRadioButton(text="Log.")
+        self.bg_y.addButton(self.y_lin)
+        self.bg_y.addButton(self.y_log)
+
+        self.label2: QNewLabel = QNewLabel("Fit order :")
+        self.spinbox: QSpinBox = QSpinBox()
+        self.spinbox.setRange(0, 15)
+        self.spinbox.setSingleStep(1)
+        self.spinbox.setValue(5)
+
+        # Set the layout
+        hbcopy = QHBoxLayout()
+        hbcopy.addWidget(self.combo)
+        hbcopy.addWidget(self.but_copy)
+
+        hb0 = QHBoxLayout()
+        hb0.addWidget(self.label1)
+        hb0.addStretch(1)
+        hb0.addWidget(self.y_from_x)
+        hb0.addWidget(self.x_from_y)
+
+        hb1 = QHBoxLayout()
+        hb1.addWidget(self.labelx)
+        hb1.addWidget(self.x_lin)
+        hb1.addWidget(self.x_log)
+        hb1.addStretch(1)
+        hb1.addWidget(self.labely)
+        hb1.addWidget(self.y_lin)
+        hb1.addWidget(self.y_log)
+
+        hb2 = QHBoxLayout()
+        hb2.addWidget(self.label2)
+        hb2.addWidget(self.spinbox)
+
+        self.vbox.addLayout(hbcopy)
+        self.vbox.addLayout(hb0)
+        self.vbox.addLayout(hb1)
+        self.vbox.addLayout(hb2)
+
+    def delete(self) -> None:
+        self.combo.setParent(None)
+        self.but_copy.setParent(None)
+
+        self.label1.delete()
+        self.bg_formula.setParent(None)
+        self.y_from_x.setParent(None)
+        self.x_from_y.setParent(None)
+
+        self.labelx.delete()
+        self.bg_x.setParent(None)
+        self.x_lin.setParent(None)
+        self.x_log.setParent(None)
+
+        self.labely.delete()
+        self.bg_y.setParent(None)
+        self.y_lin.setParent(None)
+        self.y_log.setParent(None)
+
+        self.label2.delete()
+        self.spinbox.setParent(None)
+
+        super().delete()

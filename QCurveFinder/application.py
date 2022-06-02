@@ -1,18 +1,19 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, \
-    QFileDialog, QMessageBox
+    QFileDialog, QMessageBox, QFrame
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from .widgets import QImage, QInstructBox, QImageOptions, QCoord
+from .widgets import QImage, QInstructBox, QCoordOption, QFilterOption, QEdgeSelectionOption, \
+    QEvaluationOptions
 from .tools import get_copy_text, CurveFinder
 from .constants import *
 
+from typing import List, Tuple
 from random import randrange
 from shutil import rmtree
-from typing import List
 import numpy as np
 import cv2
 import os
@@ -32,11 +33,13 @@ class QCurveFinder(QWidget):
         self.pts_final_p: List[np.ndarray] = []
         self.pts_final_r: List[np.ndarray] = []
         self.pts_eval_r: List[np.ndarray] = []
+        self.pts_coord: List[Tuple[int, int]] = [(-1, -1)]*4
         self.coef: list = []
         self.order: int = 5
         self.var: str = "x"
         self.islog: List[bool] = [False, False]
         self.mask: np.ndarray = None
+        self.isEquationReady: bool = False
 
         self.setWindowTitle(f"CurveFinder v{VER}")
         self.setWindowIcon(QIcon(ICON_PATH))
@@ -52,55 +55,104 @@ class QCurveFinder(QWidget):
         # Create widgets
         self.img: QImage = QImage(PH_IMAGE_PATH)
         self.instruct: QInstructBox = QInstructBox()
-        self.img_op: QImageOptions = QImageOptions()
-        self.coord_prompt: QCoord = QCoord()
+        self.options: QVBoxLayout = QVBoxLayout()
         self.but_browse: QPushButton = QPushButton(text="Select an image")
         self.but_start: QPushButton = QPushButton(text="Start")
         self.but_next: QPushButton = QPushButton(text="Next")
+        self.current_layout = None
 
         # Bind the signals
         self.img.signal.connect(self.add_position)
         self.but_browse.clicked.connect(self.browse_for_image)
         self.but_start.clicked.connect(self.start)
         self.but_next.clicked.connect(self.next)
-        self.instruct.but_copy.clicked.connect(self.copy_text)
-        self.img_op.combo.currentTextChanged.connect(self.update_image)
-        self.img_op.slider1.sliderMoved.connect(self.update_image)
-        self.img_op.slider2.sliderMoved.connect(self.update_image)
-        self.img_op.spinbox.valueChanged.connect(self.set_equation)
-        self.img_op.spinbox.valueChanged.connect(self.img.update_brush_radius)
-        self.img_op.y_from_x.toggled.connect(self.set_equation)
-        self.img_op.x_from_y.toggled.connect(self.set_equation)
-        self.img_op.x_lin.toggled.connect(self.update_lin_log)
-        self.img_op.x_log.toggled.connect(self.update_lin_log)
-        self.img_op.y_lin.toggled.connect(self.update_lin_log)
-        self.img_op.y_log.toggled.connect(self.update_lin_log)
-
-        # Create the layout
-        options = QVBoxLayout()
-        options.addLayout(self.instruct)
-        options.addLayout(self.img_op)
-        options.addLayout(self.coord_prompt)
-        options.addWidget(self.but_browse)
-        but_lay = QHBoxLayout()
-        but_lay.addWidget(self.but_start)
-        but_lay.addWidget(self.but_next)
-        options.addLayout(but_lay)
-
-        hbox = QHBoxLayout()
-        hbox.addWidget(self.img, alignment=Qt.AlignCenter, stretch=4)
-        hbox.addLayout(options, stretch=1)
-
-        self.setLayout(hbox)
 
         # Set application state
         self.app_state = AppState.INITIAL
+
+        # Update the layout
+        self.set_layout()
 
         self.show()
 
     def __del__(self) -> None:
         """ Remove the temporary folder """
         rmtree(TEMP_PATH)
+
+    def set_layout(self) -> None:
+        # Create the layout
+        self.options.addLayout(self.instruct)
+        self.options.addLayout(self.current_layout)
+
+        but_lay = QHBoxLayout()
+        but_lay.addWidget(self.but_start)
+        but_lay.addWidget(self.but_next)
+
+        browse_lay = QVBoxLayout()
+        hrule = QFrame()
+        hrule.setFrameShape(QFrame.HLine)
+        hrule.setFrameShadow(QFrame.Sunken)
+        browse_lay.addWidget(hrule)
+        browse_lay.addWidget(self.but_browse)
+        browse_lay.addLayout(but_lay)
+
+        side_lay = QVBoxLayout()
+        side_lay.addLayout(self.options)
+        side_lay.addLayout(browse_lay)
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.img, alignment=Qt.AlignCenter, stretch=4)
+        hbox.addLayout(side_lay, stretch=1)
+
+        self.setLayout(hbox)
+
+    def update_layout(self, new_state: AppState) -> None:
+        if new_state == AppState.COORD_ALL_SELECTED:
+            return
+        elif (new_state == AppState.EQUATION_IMAGE or new_state == AppState.EQUATION_PLOT) and self.isEquationReady:
+            return
+
+        # Remove old layout
+        self.options.removeItem(self.current_layout)
+
+        # Delete old layout
+        if self.current_layout is None:
+            pass
+        elif isinstance(self.current_layout, QHBoxLayout):
+            self.current_layout.setParent(None)
+        else:
+            self.current_layout.delete()
+
+        # Create and add the new layout
+        if new_state == AppState.INITIAL:
+            self.current_layout = QHBoxLayout()
+
+        elif new_state == AppState.STARTED:
+            self.current_layout = QCoordOption()
+
+        elif new_state == AppState.FILTER_CHOICE:
+            self.current_layout = QFilterOption()
+            self.current_layout.combo.currentTextChanged.connect(self.update_image)
+            self.current_layout.slider1.sliderMoved.connect(self.update_image)
+            self.current_layout.slider2.sliderMoved.connect(self.update_image)
+
+        elif new_state == AppState.EDGE_SELECTION:
+            self.current_layout = QEdgeSelectionOption()
+            self.current_layout.spinbox.valueChanged.connect(self.img.update_brush_radius)
+
+        elif new_state == AppState.EQUATION_IMAGE:
+            self.current_layout = QEvaluationOptions()
+            self.current_layout.but_copy.clicked.connect(self.copy_text)
+            self.current_layout.spinbox.valueChanged.connect(self.set_equation)
+            self.current_layout.y_from_x.toggled.connect(self.set_equation)
+            self.current_layout.x_from_y.toggled.connect(self.set_equation)
+            self.current_layout.x_lin.toggled.connect(self.update_lin_log)
+            self.current_layout.x_log.toggled.connect(self.update_lin_log)
+            self.current_layout.y_lin.toggled.connect(self.update_lin_log)
+            self.current_layout.y_log.toggled.connect(self.update_lin_log)
+            self.isEquationReady = True
+
+        self.options.addLayout(self.current_layout)
 
     def browse_for_image(self) -> None:
         """ Method to select an image """
@@ -131,8 +183,8 @@ class QCurveFinder(QWidget):
     def verify_coord(self) -> bool:
         """ Method to verify if the coordinates are entered in the input boxes """
         good_coord = True
-        for (i, coord) in enumerate([self.coord_prompt.x1_coord, self.coord_prompt.x2_coord,
-                                     self.coord_prompt.y1_coord, self.coord_prompt.y2_coord]):
+        for (i, coord) in enumerate([self.current_layout.x1_coord, self.current_layout.x2_coord,
+                                     self.current_layout.y1_coord, self.current_layout.y2_coord]):
             try:
                 self.coord[i] = float(coord.line.text())
             except ValueError:
@@ -150,18 +202,18 @@ class QCurveFinder(QWidget):
     def add_position(self, x: int, y: int, button: Qt.MouseButton) -> None:
         """ Method used when clicking with the mouse on the image """
         if self.app_state == AppState.STARTED:
-            if not self.coord_prompt.x1_done:
-                self.coord_prompt.pts[0] = (x, y)
-                self.coord_prompt.x1_done = True
-            elif not self.coord_prompt.x2_done:
-                self.coord_prompt.pts[1] = (x, y)
-                self.coord_prompt.x2_done = True
-            elif not self.coord_prompt.y1_done:
-                self.coord_prompt.pts[2] = (x, y)
-                self.coord_prompt.y1_done = True
-            elif not self.coord_prompt.y2_done:
-                self.coord_prompt.pts[3] = (x, y)
-                self.coord_prompt.y2_done = True
+            if not self.current_layout.x1_done:
+                self.current_layout.pts[0] = (x, y)
+                self.current_layout.x1_done = True
+            elif not self.current_layout.x2_done:
+                self.current_layout.pts[1] = (x, y)
+                self.current_layout.x2_done = True
+            elif not self.current_layout.y1_done:
+                self.current_layout.pts[2] = (x, y)
+                self.current_layout.y1_done = True
+            elif not self.current_layout.y2_done:
+                self.current_layout.pts[3] = (x, y)
+                self.current_layout.y2_done = True
                 self.app_state = AppState.COORD_ALL_SELECTED
 
         elif self.app_state == AppState.EDGE_SELECTION:
@@ -172,7 +224,7 @@ class QCurveFinder(QWidget):
 
     def draw_mask(self, x: int, y: int, color: int) -> None:
         """ Method to draw the brush on the image """
-        radius = self.img_op.spinbox.value()
+        radius = self.current_layout.spinbox.value()
         cv2.circle(self.mask, (x, y), radius, color, -1)
 
     def resize_and_rotate(self) -> None:  # TODO: Dewarp the image
@@ -184,8 +236,6 @@ class QCurveFinder(QWidget):
         cv2.imwrite(ROTA_IMG, img)
         self.img.source = ROTA_IMG
 
-        self.update_lin_log()
-
     def update_lin_log(self):
         """
         Method to update the axis to a log or a linear and
@@ -193,27 +243,28 @@ class QCurveFinder(QWidget):
         """
         ready_to_update = self.app_state >= AppState.FILTER_CHOICE
         if ready_to_update:
-            self.curvefinder.update_lin_log(self.img_op.x_lin.isChecked(), self.img_op.y_lin.isChecked(),
+            self.curvefinder.update_lin_log(self.current_layout.x_lin.isChecked(),
+                                            self.current_layout.y_lin.isChecked(),
                                             ready_to_update)
             self.set_equation()
 
     def set_equation(self, do: bool = True) -> None:
         """ Method to update the equation displayed in the instruction box """
         if do and self.app_state >= AppState.EQUATION_IMAGE:
-            if self.img_op.x_lin.isChecked():
+            if self.current_layout.x_lin.isChecked():
                 x = np.array(self.pts_final_r)[:, 0]
                 x_log = False
             else:
                 x = np.log10(self.pts_final_r)[:, 0]
                 x_log = True
-            if self.img_op.y_lin.isChecked():
+            if self.current_layout.y_lin.isChecked():
                 y = np.array(self.pts_final_r)[:, 1]
                 y_log = False
             else:
                 y = np.log10(self.pts_final_r)[:, 1]
                 y_log = True
 
-            if self.img_op.y_from_x.isChecked():
+            if self.current_layout.y_from_x.isChecked():
                 var = "x"
                 a = x
                 b = y
@@ -228,7 +279,7 @@ class QCurveFinder(QWidget):
 
             self.var = var
             self.islog = [a_log, b_log]
-            self.order = order = self.img_op.spinbox.value()
+            self.order = order = self.current_layout.spinbox.value()
             self.coef = coef = np.polyfit(a, b, order)
             b = np.poly1d(coef)
             eval_a = np.linspace(min(a), max(a), 100)
@@ -266,9 +317,9 @@ class QCurveFinder(QWidget):
         """ Method to update the image with the contour chosen in the combobox """
         if self.app_state == AppState.FILTER_CHOICE:
             img = cv2.cvtColor(cv2.imread(ROTA_IMG), cv2.COLOR_BGR2GRAY)
-            tr1, tr2 = [self.img_op.slider1.value(), self.img_op.slider2.value()]
+            tr1, tr2 = [self.current_layout.slider1.value(), self.current_layout.slider2.value()]
 
-            mode = self.img_op.combo.currentIndex()
+            mode = self.current_layout.combo.currentIndex()
 
             if mode == ContourOptions.CANNY:
                 img = cv2.Canny(img, tr1, tr2)
@@ -319,11 +370,11 @@ class QCurveFinder(QWidget):
         ax.legend()
         ax.grid()
 
-        if self.img_op.x_lin.isChecked():
+        if self.current_layout.x_lin.isChecked():
             ax.set_xscale('linear')
         else:
             ax.set_xscale('log')
-        if self.img_op.y_lin.isChecked():
+        if self.current_layout.y_lin.isChecked():
             ax.set_yscale('linear')
         else:
             ax.set_yscale('log')
@@ -336,7 +387,7 @@ class QCurveFinder(QWidget):
 
     def copy_text(self) -> None:
         """ Method to copy certain data """
-        text = get_copy_text(self.instruct.combo.currentIndex(), self.var, self.coef, self.pts_final_r)
+        text = get_copy_text(self.current_layout.combo.currentIndex(), self.var, self.coef, self.pts_final_r)
 
         if text is not None:
             QApplication.clipboard().setText(text)
@@ -349,18 +400,18 @@ class QCurveFinder(QWidget):
     @app_state.setter
     def app_state(self, state: AppState) -> None:
         """ Method where the sequence of the app is handled """
+        self.update_layout(state)
         self._app_state = state
 
         if state == AppState.INITIAL:
             """Starting state"""
             self.instruct.textbox.setMarkdown(INITIAL_TEXT)
+            self.instruct.setEnabled(False)
+
             self.but_start.setText("Start")
             self.but_next.setText("Next")
             self.but_next.setEnabled(False)
-            self.coord_prompt.initValues()
-            self.instruct.setEnabled(False)
-            self.img_op.setEnabled(True)
-            self.img_op.is_brush = True
+
             self.img.clickEnabled = False
             self.img.zoomEnabled = False
             self.img.maskEnabled = False
@@ -370,16 +421,19 @@ class QCurveFinder(QWidget):
         elif state == AppState.STARTED:
             """Pressed Start"""
             self.instruct.textbox.setMarkdown(STARTED_TEXT)
+            self.instruct.setEnabled(False)
+
             self.but_start.setText("Restart")
             self.but_next.setText("Next")
             self.but_next.setEnabled(True)
-            self.coord_prompt.initValues()
-            self.instruct.setEnabled(False)
-            self.img_op.setEnabled(True)
-            self.img_op.is_brush = True
+
+            self.current_layout.initValues()
+
             self.pts_final_p = []
             self.pts_final_r = []
             self.pts_eval_r = []
+            self.isEquationReady = False
+
             self.img.source = ORIG_IMG
             self.img.clickEnabled = True
             self.img.coordEnabled = True
@@ -387,6 +441,8 @@ class QCurveFinder(QWidget):
 
         elif state == AppState.COORD_ALL_SELECTED:
             """Coordinate all selected"""
+            self.pts_coord = self.current_layout.pts
+
             self.img.clickEnabled = False
             self.img.coordEnabled = False
             self.img.zoomEnabled = False
@@ -394,18 +450,21 @@ class QCurveFinder(QWidget):
         elif state == AppState.FILTER_CHOICE:
             """Chose the coord and rotated"""
             self.instruct.textbox.setMarkdown(FILTER_CHOICE_TEXT)
+
             self.curvefinder.set_coord_points(self.coord)
-            self.curvefinder.set_axis_points(self.coord_prompt.pts)
+            self.curvefinder.set_axis_points(self.pts_coord)
             self.curvefinder.update()
+
             self.resize_and_rotate()
             self.update_image()
 
         elif state == AppState.EDGE_SELECTION:
             """Chose the displaying"""
             self.instruct.textbox.setMarkdown(EDGE_SELECTION_TEXT)
-            self.img_op.setEnabled(False)
+
             self.img.clickEnabled = True
             self.img.maskEnabled = True
+
             img = cv2.cvtColor(cv2.imread(CONT_IMG), cv2.COLOR_BGR2GRAY)
             img = np.greater(img, np.zeros(img.shape))*255  # Create the contour mask
             self.mask = np.ones(img.shape)
@@ -430,8 +489,6 @@ class QCurveFinder(QWidget):
             self.img.source = SELE_IMG
             self.img.draw_points(self.curvefinder.get_points())
             self.instruct.setEnabled(True)
-            if self.img_op.is_brush:
-                self.img_op.is_brush = False
             self.set_equation()
             self.but_next.setText("Plot")
 
