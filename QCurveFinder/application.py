@@ -150,6 +150,7 @@ class QCurveFinder(QWidget):
             self.current_layout.x_log.toggled.connect(self.update_lin_log)
             self.current_layout.y_lin.toggled.connect(self.update_lin_log)
             self.current_layout.y_log.toggled.connect(self.update_lin_log)
+            self.current_layout.but_evaluate.clicked.connect(self.evaluate)
             self.isEquationReady = True
 
         self.options.addLayout(self.current_layout)
@@ -391,6 +392,10 @@ class QCurveFinder(QWidget):
 
         if text is not None:
             QApplication.clipboard().setText(text)
+
+    def evaluate(self) -> None:
+        value = np.poly1d(self.coef)(float(self.current_layout.input.text()))
+        self.current_layout.output.setText(f"{value:0.3f}")
 
     @property
     def app_state(self) -> AppState:

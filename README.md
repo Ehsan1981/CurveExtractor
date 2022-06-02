@@ -12,7 +12,7 @@ Simple app to let you find the equations from a graph
 ## Next steps
 - [ ] Release v2.4
 - [ ] Dark stylesheet
-- [ ] Evaluate function at the end (button + popup)
+- [ ] Fix the fact that we can't see the mask when hovering over it
 - [ ] Remove the need to save the image each times
 - [ ] Update the README with instructions
 - [ ] Test the log axis function

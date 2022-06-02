@@ -546,6 +546,18 @@ class QEvaluationOptions(QOptionsTemplate):
         self.spinbox.setSingleStep(1)
         self.spinbox.setValue(5)
 
+        self.label3: QNewLabel = QNewLabel("Input :")
+        self.input: QLineEdit = QLineEdit()
+        self.input.setPlaceholderText("x")
+        self.output: QLineEdit = QLineEdit()
+        self.output.setPlaceholderText("y")
+        self.output.setEnabled(False)
+        self.y_from_x.clicked.connect(lambda: self.input.setPlaceholderText("x"))
+        self.y_from_x.clicked.connect(lambda: self.output.setPlaceholderText("y"))
+        self.x_from_y.clicked.connect(lambda: self.input.setPlaceholderText("y"))
+        self.x_from_y.clicked.connect(lambda: self.output.setPlaceholderText("x"))
+        self.but_evaluate: QPushButton = QPushButton(text="Evaluate")
+
         # Set the layout
         hbcopy = QHBoxLayout()
         hbcopy.addWidget(self.combo)
@@ -570,10 +582,17 @@ class QEvaluationOptions(QOptionsTemplate):
         hb2.addWidget(self.label2)
         hb2.addWidget(self.spinbox)
 
+        hb3 = QHBoxLayout()
+        hb3.addWidget(self.label3)
+        hb3.addWidget(self.input)
+        hb3.addWidget(self.output)
+        hb3.addWidget(self.but_evaluate)
+
         self.vbox.addLayout(hbcopy)
         self.vbox.addLayout(hb0)
         self.vbox.addLayout(hb1)
         self.vbox.addLayout(hb2)
+        self.vbox.addLayout(hb3)
 
     def delete(self) -> None:
         self.combo.setParent(None)
@@ -596,5 +615,10 @@ class QEvaluationOptions(QOptionsTemplate):
 
         self.label2.delete()
         self.spinbox.setParent(None)
+
+        self.label3.delete()
+        self.input.setParent(None)
+        self.output.setParent(None)
+        self.but_evaluate.setParent(None)
 
         super().delete()

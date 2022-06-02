@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Changed the crosshair
 - Added an Excel lambda function export
 - Added dynamic tool menu
+- Added a way to evaluate the equation at the end
 
 ## [2.3] - 2022-01-05
 
