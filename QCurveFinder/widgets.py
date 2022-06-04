@@ -495,7 +495,6 @@ class QEdgeSelectionOption(QOptionsTemplate):
         self.spinbox: QSpinBox = QSpinBox()
         self.spinbox.setRange(0, 50)
         self.spinbox.setSingleStep(5)
-        self.spinbox.setValue(5)
 
         # Set the layout
         hbox = QHBoxLayout()

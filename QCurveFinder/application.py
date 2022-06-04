@@ -502,6 +502,8 @@ class QCurveFinder(QWidget):
             self.mask = np.ones(img.shape)
             cv2.imwrite(CTMK_IMG, img)
 
+            self.current_layout.spinbox.setValue(25)
+
         elif state == AppState.EQUATION_IMAGE:
             """Selected the edges to keep"""
             self.img.clickEnabled = False
