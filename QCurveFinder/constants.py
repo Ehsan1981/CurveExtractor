@@ -40,7 +40,7 @@ class ContourOptions(IntEnum):
 
 
 # APPLICATION DATA
-VER = "2.4"
+VER = "2.5"
 AUTHOR = "Bruno-Pier Busque"
 
 APP_WIDTH = 1500
