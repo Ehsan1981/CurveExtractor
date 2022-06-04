@@ -165,7 +165,9 @@ class QCurveFinder(QWidget):
 
     def start(self) -> None:
         """ Method for the Start button """
-        cv2.imwrite(ORIG_IMG, cv2.imread(self.img_src))
+        with open(self.img_src, "rb") as stream:
+            img = cv2.imdecode(np.asarray(bytearray(stream.read()), dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+        cv2.imwrite(ORIG_IMG, img)
         self.app_state = AppState.STARTED
 
     def next(self) -> None:
