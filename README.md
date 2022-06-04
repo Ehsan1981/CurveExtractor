@@ -15,3 +15,4 @@ Simple app to let you find the equations from a graph
 - [ ] Update the README with instructions
 - [ ] Test the log axis function
 - [ ] Implement automatic testing
+- [ ] Display estimated curve on the image
