@@ -52,7 +52,10 @@ class QImage(QLabel):
     border: int = 3
     pts_colors: Tuple[QColor] = (QColor(204, 0, 0, 150), QColor(0, 153, 0, 150),
                                  QColor(0, 0, 153, 150), QColor(204, 204, 0, 150))
-    pts_labels: Tuple[str] = ("X<sub>1</sub>", "X<sub>2</sub>", "Y<sub>1</sub>", "Y<sub>2</sub>")
+    pts_labels: Tuple[str] = ("<p style='color:rgba(204, 0, 0, 150)'>X<sub>1</sub></p>",
+                              "<p style='color:rgba(0, 153, 0, 150)'>X<sub>2</sub></p>",
+                              "<p style='color:rgba(0, 0, 153, 150)'>Y<sub>1</sub></p>",
+                              "<p style='color:rgba(204, 204, 0, 150)'>Y<sub>2</sub></p>")
 
     def __init__(self, image_path: str) -> None:
         """ Initialise the image of the graph """
@@ -329,7 +332,7 @@ class QOptionsTemplate(QVBoxLayout):
 class QCoordOption(QOptionsTemplate):
     """ The class for the coordinate inputs box """
 
-    pts_labels: Tuple[str] = (r"X_1", r"X_2", r"Y_1", r"Y_2")
+    pts_labels: Tuple[str] = ("X1", "X2", "Y1", "Y2")
 
     def __init__(self) -> None:
         """ Initialise the coordinate inputs """

@@ -10,7 +10,6 @@ Simple app to let you find the equations from a graph
 - Run `build.py -b` with the venv
 
 ## Next steps
-- [ ] Dark stylesheet
 - [ ] Fix the fact that we can't see the mask when hovering over it
 - [ ] Remove the need to save the image each times
 - [ ] Update the README with instructions
