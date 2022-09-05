@@ -1,7 +1,7 @@
 from typing import Union, List, Tuple
 from numpy import ndarray, array
-from enum import IntEnum
 from .constants import *
+from enum import Enum
 import math as mt
 import cv2
 
@@ -120,7 +120,7 @@ class CurveFinder:
             return (x1_p, y_p), (x2_p, y_p), (x_p, y1_p), (x_p, y2_p)
 
         class Axis:
-            class AxisType(IntEnum):
+            class AxisType(Enum):
                 X = 0
                 Y = 1
 
