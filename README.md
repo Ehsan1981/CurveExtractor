@@ -4,15 +4,21 @@
 
 Simple app to let you find the equations from a graph
 
-## To build with pyinstaller
+### Building with pyinstaller
 
-- Create a venv with every module from `requirements.txt`
-- Run `build.py -b` with the venv
-
-## Next steps
-- [ ] Fix the fact that we can't see the mask when hovering over it
-- [ ] Remove the need to save the image each times
-- [ ] Update the README with instructions
-- [ ] Test the log axis function
-- [ ] Implement automatic testing
-- [ ] Display estimated curve on the image
+1. Create a virtual environment.
+   ```shellsession
+   user@computer:.../CurveFinder$ python -m venv ./venv
+   ```
+2. Activate the virtual environment.
+   ```shellsession
+   user@computer:.../CurveFinder$ source ./venv/bin/activate
+   ```
+3. Install the dependencies from `requirements.txt`.
+   ```shellsession
+   user@computer:.../CurveFinder$ pip install -r requirements.txt
+   ```
+4. Build the executable.
+   ```shellsession
+   user@computer:.../CurveFinder$ python build.py -b
+5. The executable is now available in the `./dist` directory.
