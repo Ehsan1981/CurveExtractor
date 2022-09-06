@@ -58,6 +58,7 @@ ORIG_IMG = os.path.join(TEMP_PATH, "original_img.png")
 COOR_IMG = os.path.join(TEMP_PATH, "coordinate_img.png")  # TODO: Not used anymore
 ROTA_IMG = os.path.join(TEMP_PATH, "rotated_img.png")
 CONT_IMG = os.path.join(TEMP_PATH, "contoured_img.png")
+COLO_IMG = os.path.join(TEMP_PATH, "colored_img.png")
 CTMK_IMG = os.path.join(TEMP_PATH, "masked_contoured_img.png")
 SELE_IMG = os.path.join(TEMP_PATH, "selected_img.png")
 PLOT_IMG = os.path.join(TEMP_PATH, "plotted_img.png")
@@ -67,8 +68,9 @@ INITIAL_TEXT = "Select an image by pressing the `Select an image` button at the 
 STARTED_TEXT = "Click on 2 points for each axis in this order:\n\n" \
                "\tX1 -> X2 -> Y1 -> Y2\n" \
                "Enter their coordinates in the boxes below."
-FILTER_CHOICE_TEXT = "Adjust the thresholding so that the curve you want to extract " \
-                     "is clearly visible and free of nearby obstacles.\n\n" \
+FILTER_CHOICE_TEXT = "Adjust the image so that the curve you want to extract " \
+                     "is clearly visible and free of nearby obstacles. You can achieve this" \
+                     "with either the contours or the colors mode.\n\n" \
                      "When done, press `Next`"
 EDGE_SELECTION_TEXT = "Press and hold the left mouse button over the curve you want to extract. All the " \
                       '"painted" multi-colored points will be extracted.\n\n' \

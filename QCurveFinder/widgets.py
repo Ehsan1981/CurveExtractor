@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QCheckBox, QLineEdit, QTextBrowser, \
-    QSlider, QComboBox, QRadioButton, QSpinBox, QButtonGroup
+    QSlider, QComboBox, QRadioButton, QSpinBox, QButtonGroup, QTabWidget, QWidget, QColorDialog
 from PyQt5.QtGui import QPixmap, QMouseEvent, QFont, QPainter, QPainterPath, QPen, QColor, QTextDocument
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QRect, QSize, QRectF, QSizeF
 
@@ -423,14 +423,14 @@ class QCoordOption(QOptionsTemplate):
         super().delete()
 
 
-class QFilterOption(QOptionsTemplate):
+class QContoursOption(QOptionsTemplate):
     treshs: Tuple[Tuple[bool]] = ((True, True), (True, True), (False, False), (False, False),
                                   (False, False), (False, False), (False, False))
     tresh_ext: Tuple[Tuple[int]] = ((-1000, 1000, -1000, 1000), (0, 255, 0, 255), (0, 1, 0, 1), (0, 1, 0, 1),
                                     (0, 1, 0, 1), (0, 1, 0, 1), (0, 1, 0, 1))
 
     def __init__(self) -> None:
-        super().__init__("Filter options :")
+        super().__init__("Contour options :")
 
         # Set the combobox
         self.label_combo: QNewLabel = QNewLabel(text="Contour :")
@@ -482,6 +482,89 @@ class QFilterOption(QOptionsTemplate):
         self.slider1.setParent(None)
         self.label2.delete()
         self.slider2.setParent(None)
+        super().delete()
+
+
+class QColorsOption(QOptionsTemplate):
+    color_changed: pyqtSignal = pyqtSignal()
+
+    def __init__(self) -> None:
+        super().__init__("Color options :")
+
+        # Set the combobox
+        self.label_color: QNewLabel = QNewLabel(text="Color :")
+        self.color: QColor = QColor(0, 0, 0, 255)
+        self.rect_color = QNewLabel()
+        self.rect_color.setGeometry(100, 100, 200, 60)
+        self.rect_color.setWordWrap(True)
+        self.rect_color.setAlignment(Qt.AlignCenter)
+        self.change_color(False)
+        self.but_color: QPushButton = QPushButton(text="Change")
+
+        # Set the first labeled slider
+        self.slider_label: QNewLabel = QNewLabel(text="Threshold :")
+        self.slider: QSlider = QSlider(Qt.Horizontal)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(127)
+        self.slider.setTickInterval(1)
+        self.slider.setTickPosition(QSlider.TicksBelow)
+
+        # Connect the signals
+        self.but_color.clicked.connect(lambda: self.change_color(True))
+
+        # Set the layout
+        self.vbox.addWidget(self.label_color)
+        col_hbox = QHBoxLayout()
+        col_hbox.addWidget(self.rect_color)
+        col_hbox.addWidget(self.but_color)
+        self.vbox.addLayout(col_hbox)
+        self.vbox.addWidget(self.slider_label)
+        self.vbox.addWidget(self.slider)
+
+    def change_color(self, dialog: bool = True) -> None:
+        if dialog:
+            self.color = QColorDialog.getColor()
+            self.color_changed.emit()
+        self.rect_color.setText(self.color.name())
+        luminance = (0.299*self.color.red() + 0.587*self.color.green() + 0.114*self.color.blue())/255
+        self.rect_color.setStyleSheet("QLabel{border-style: outset;"
+                                      "border-width: 2px;"
+                                      "border-radius: 10px;"
+                                      "border-color: black;"
+                                      f"color: {'black' if luminance > 0.5 else 'white'}}}"
+                                      f"QWidget{{background-color: {self.color.name():s};}}")
+
+    def delete(self) -> None:
+        self.label_color.delete()
+        self.rect_color.setParent(None)
+        self.but_color.setParent(None)
+        self.slider_label.delete()
+        self.slider.setParent(None)
+        super().delete()
+
+
+class QFilterOption(QOptionsTemplate):
+
+    def __init__(self) -> None:
+        super().__init__("Filters :")
+
+        # Add the widgets
+        self.tabs: QTabWidget = QTabWidget()
+        self.pages: List[QWidget] = [QWidget(), QWidget()]
+        self.contours: QContoursOption = QContoursOption()
+        self.colors: QColorsOption = QColorsOption()
+
+        # Set the layout
+        self.pages[0].setLayout(self.contours)
+        self.pages[1].setLayout(self.colors)
+        self.tabs.addTab(self.pages[0], "Contours")
+        self.tabs.addTab(self.pages[1], "Colors")
+        self.vbox.addWidget(self.tabs)
+
+    def delete(self) -> None:
+        self.contours.delete()
+        self.colors.delete()
+        self.tabs.setParent(None)
         super().delete()
 
 

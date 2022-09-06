@@ -6,8 +6,8 @@ from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from .widgets import QImage, QInstructBox, QCoordOption, QFilterOption, QEdgeSelectionOption, \
-    QEvaluationOptions
+from .widgets import QImage, QInstructBox, QCoordOption, QContoursOption, QColorsOption, QFilterOption,\
+    QEdgeSelectionOption, QEvaluationOptions
 from .tools import get_copy_text, CurveFinder
 from .constants import *
 
@@ -157,9 +157,12 @@ class QCurveFinder(QWidget):
 
         elif new_state == AppState.FILTER_CHOICE:
             self.current_layout = QFilterOption()
-            self.current_layout.combo.currentTextChanged.connect(self.update_image)
-            self.current_layout.slider1.sliderMoved.connect(self.update_image)
-            self.current_layout.slider2.sliderMoved.connect(self.update_image)
+            self.current_layout.tabs.currentChanged.connect(self.update_image)
+            self.current_layout.contours.combo.currentTextChanged.connect(self.update_image)
+            self.current_layout.contours.slider1.sliderMoved.connect(self.update_image)
+            self.current_layout.contours.slider2.sliderMoved.connect(self.update_image)
+            self.current_layout.colors.color_changed.connect(self.update_image)
+            self.current_layout.colors.slider.sliderMoved.connect(self.update_image)
 
         elif new_state == AppState.EDGE_SELECTION:
             self.current_layout = QEdgeSelectionOption()
@@ -344,46 +347,63 @@ class QCurveFinder(QWidget):
     def update_image(self) -> None:
         """ Method to update the image with the contour chosen in the combobox """
         if self.app_state == AppState.FILTER_CHOICE:
-            img = cv2.cvtColor(cv2.imread(ROTA_IMG), cv2.COLOR_BGR2GRAY)
-            tr1, tr2 = [self.current_layout.slider1.value(), self.current_layout.slider2.value()]
+            if self.current_layout.tabs.currentIndex() == 0:  # On contour tab
+                img = cv2.cvtColor(cv2.imread(ROTA_IMG), cv2.COLOR_BGR2GRAY)
+                tr1, tr2 = [self.current_layout.contours.slider1.value(), self.current_layout.contours.slider2.value()]
 
-            mode = self.current_layout.combo.currentIndex()
+                mode = self.current_layout.contours.combo.currentIndex()
 
-            if mode == ContourOptions.CANNY:
-                img = cv2.Canny(img, tr1, tr2)
+                if mode == ContourOptions.CANNY:
+                    img = cv2.Canny(img, tr1, tr2)
 
-            elif mode == ContourOptions.GLOBAL:
-                img = cv2.medianBlur(img, 5)
-                ret, img = cv2.threshold(img, tr1, tr2, cv2.THRESH_BINARY)
+                elif mode == ContourOptions.GLOBAL:
+                    img = cv2.medianBlur(img, 5)
+                    ret, img = cv2.threshold(img, tr1, tr2, cv2.THRESH_BINARY)
 
-            elif mode == ContourOptions.ADAPTIVE_MEAN:
-                img = cv2.medianBlur(img, 5)
-                img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+                elif mode == ContourOptions.ADAPTIVE_MEAN:
+                    img = cv2.medianBlur(img, 5)
+                    img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
 
-            elif mode == ContourOptions.ADAPTIVE_GAUSSIAN:
-                img = cv2.medianBlur(img, 5)
-                img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+                elif mode == ContourOptions.ADAPTIVE_GAUSSIAN:
+                    img = cv2.medianBlur(img, 5)
+                    img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 
-            elif mode == ContourOptions.OTSUS:
-                ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                elif mode == ContourOptions.OTSUS:
+                    ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
-            elif mode == ContourOptions.OTSUS_GAUSSIAN_BLUR:
-                img = cv2.GaussianBlur(img, (5, 5), 0)
-                ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                elif mode == ContourOptions.OTSUS_GAUSSIAN_BLUR:
+                    img = cv2.GaussianBlur(img, (5, 5), 0)
+                    ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
-            else:
-                pass
+                else:
+                    pass
 
-            cont, h = cv2.findContours(img, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-            a, b = img.shape
-            img = np.zeros((a, b, 3))
+                cont, h = cv2.findContours(img, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+                a, b = img.shape
+                img = np.zeros((a, b, 3))
 
-            for c in cont:
-                col = (randrange(255), randrange(255), randrange(255))
-                cv2.drawContours(img, c, -1, col)
+                for c in cont:
+                    col = (randrange(255), randrange(255), randrange(255))
+                    cv2.drawContours(img, c, -1, col)
 
-            cv2.imwrite(CONT_IMG, img)
-            self.img.source = CONT_IMG
+                cv2.imwrite(CONT_IMG, img)
+                self.img.source = CONT_IMG
+            elif self.current_layout.tabs.currentIndex() == 1:  # On the colors tab
+                img = cv2.imread(ROTA_IMG)
+                color = self.current_layout.colors.color
+                thresh = self.current_layout.colors.slider.value()
+
+                # Define the range
+                lower = np.array([color.blue() - thresh, color.green() - thresh, color.red() - thresh]).clip(0, 255)
+                upper = np.array([color.blue() + thresh, color.green() + thresh, color.red() + thresh]).clip(0, 255)
+
+                # find the mask
+                mask = cv2.inRange(img, lower, upper)
+                img = cv2.addWeighted(cv2.bitwise_and(img, img, mask=mask), 0.5, img, 0.5, 0)
+
+                cv2.imwrite(COLO_IMG, img)
+                cv2.imwrite(CONT_IMG, mask)
+                self.img.source = COLO_IMG
 
     def plot_points(self) -> None:
         """ Method to generate the plot image and display it """
