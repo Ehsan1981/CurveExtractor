@@ -5,7 +5,6 @@ Simple app to let you find the equations from a graph
 - [ ] Test the log axis function
 - [ ] Display estimated curve on the image
 - [ ] Select points inside the contours
-- [ ] Add animations in the instruction boxes
 
 ### Low priority tasks
 - [ ] Implement automatic testing
@@ -13,3 +12,4 @@ Simple app to let you find the equations from a graph
 ### Task ideas
 - [ ] Fix the fact that we can't see the mask when hovering over it
 - [ ] Remove the need to save the image each times
+- [ ] Add animations in the instruction boxes

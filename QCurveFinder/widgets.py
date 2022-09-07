@@ -576,7 +576,7 @@ class QEdgeSelectionOption(QOptionsTemplate):
         # Create the widgets
         self.label: QNewLabel = QNewLabel("Brush size :")
         self.spinbox: QSpinBox = QSpinBox()
-        self.spinbox.setRange(0, 50)
+        self.spinbox.setRange(0, 100)
         self.spinbox.setSingleStep(5)
 
         # Set the layout
