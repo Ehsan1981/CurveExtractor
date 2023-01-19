@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [2.5] - Unreleased
+## [2.5] - 2023-01-18
 
 - Picture name with Unicode character no longer crash the program.
 - Added a dark mode if the OS is in dark mode.
